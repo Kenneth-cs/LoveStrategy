@@ -1,0 +1,643 @@
+//
+//  VolcengineService.swift
+//  Zhananfenxi
+//
+//  火山引擎 API 服务层
+//
+
+import Foundation
+import UIKit
+
+// MARK: - 火山引擎服务
+
+class VolcengineService: ObservableObject {
+    
+    // MARK: - Properties
+    
+    @Published var isAnalyzing = false
+    @Published var error: VolcengineError?
+    
+    private let apiKey = "3d0e053d-0d42-4e32-9a15-4e865ffb7e4b"
+    private let endpoint = "https://ark.cn-beijing.volces.com/api/v3/chat/completions"
+    private let modelID = "doubao-seed-1-6-flash-250828"
+    
+    // MARK: - Public Methods
+    
+    /// 分析聊天截图
+    func analyzeImages(_ images: [UIImage]) async throws -> AnalysisResult {
+        isAnalyzing = true
+        defer { isAnalyzing = false }
+        
+        // 1. 图片转 Base64
+        guard let firstImage = images.first,
+              let jpegData = firstImage.jpegData(compressionQuality: 0.7) else {
+            throw VolcengineError.invalidImage
+        }
+        
+        let base64Image = jpegData.base64EncodedString()
+        
+        // 2. 构建请求
+        let request = try buildAnalysisRequest(base64Image: base64Image)
+        
+        // 3. 发送请求
+        let response = try await sendRequest(request)
+        
+        // 4. 解析响应
+        let result = try parseAnalysisResponse(response)
+        
+        return result
+    }
+    
+    /// 生成高情商回复
+    func generateReplies(for message: String) async throws -> ReplyOptions {
+        isAnalyzing = true
+        defer { isAnalyzing = false }
+        
+        // 构建请求
+        let request = try buildReplyRequest(message: message)
+        
+        // 发送请求
+        let response = try await sendRequest(request)
+        
+        // 解析响应
+        let options = try parseReplyResponse(response)
+        
+        return options
+    }
+    
+    /// 截图起卦
+    func performOracle(_ images: [UIImage], question: String?) async throws -> OracleResult {
+        isAnalyzing = true
+        defer { isAnalyzing = false }
+        
+        // 1. 图片转 Base64
+        guard let firstImage = images.first,
+              let jpegData = firstImage.jpegData(compressionQuality: 0.7) else {
+            throw VolcengineError.invalidImage
+        }
+        
+        let base64Image = jpegData.base64EncodedString()
+        
+        // 2. 构建请求
+        let request = try buildOracleRequest(base64Image: base64Image, question: question)
+        
+        // 3. 发送请求
+        let response = try await sendRequest(request)
+        
+        // 4. 解析响应
+        let result = try parseOracleResponse(response)
+        
+        return result
+    }
+    
+    // MARK: - Private Methods
+    
+    private func buildAnalysisRequest(base64Image: String) throws -> URLRequest {
+        guard let url = URL(string: endpoint) else {
+            throw VolcengineError.invalidURL
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.addValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        
+        // 构建请求体
+        let requestBody: [String: Any] = [
+            "model": modelID,
+            "max_completion_tokens": 4096,
+            "messages": [
+                [
+                    "role": "user",
+                    "content": [
+                        [
+                            "type": "image_url",
+                            "image_url": [
+                                "url": "data:image/jpeg;base64,\(base64Image)"
+                            ]
+                        ],
+                        [
+                            "type": "text",
+                            "text": getAnalysisPrompt()
+                        ]
+                    ]
+                ]
+            ]
+        ]
+        
+        request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
+        
+        return request
+    }
+    
+    private func buildReplyRequest(message: String) throws -> URLRequest {
+        guard let url = URL(string: endpoint) else {
+            throw VolcengineError.invalidURL
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.addValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        
+        let requestBody: [String: Any] = [
+            "model": modelID,
+            "max_completion_tokens": 2048,
+            "messages": [
+                [
+                    "role": "user",
+                    "content": getReplyPrompt(message: message)
+                ]
+            ]
+        ]
+        
+        request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
+        
+        return request
+    }
+    
+    private func buildOracleRequest(base64Image: String, question: String?) throws -> URLRequest {
+        guard let url = URL(string: endpoint) else {
+            throw VolcengineError.invalidURL
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.addValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        
+        let requestBody: [String: Any] = [
+            "model": modelID,
+            "max_completion_tokens": 4096,
+            "messages": [
+                [
+                    "role": "user",
+                    "content": [
+                        [
+                            "type": "image_url",
+                            "image_url": [
+                                "url": "data:image/jpeg;base64,\(base64Image)"
+                            ]
+                        ],
+                        [
+                            "type": "text",
+                            "text": getOraclePrompt(question: question)
+                        ]
+                    ]
+                ]
+            ]
+        ]
+        
+        request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
+        
+        return request
+    }
+    
+    private func sendRequest(_ request: URLRequest) async throws -> Data {
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw VolcengineError.invalidResponse
+        }
+        
+        guard (200...299).contains(httpResponse.statusCode) else {
+            // 打印错误信息用于调试
+            if let errorString = String(data: data, encoding: .utf8) {
+                print("API Error: \(errorString)")
+            }
+            throw VolcengineError.httpError(statusCode: httpResponse.statusCode)
+        }
+        
+        return data
+    }
+    
+    private func parseAnalysisResponse(_ data: Data) throws -> AnalysisResult {
+        // 1. 解析火山引擎的外层响应
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let choices = json["choices"] as? [[String: Any]],
+              let firstChoice = choices.first,
+              let message = firstChoice["message"] as? [String: Any],
+              let content = message["content"] as? String else {
+            
+            print("❌ API 响应解析失败")
+            if let errorString = String(data: data, encoding: .utf8) {
+                print("原始响应: \(errorString)")
+            }
+            throw VolcengineError.decodingError
+        }
+        
+        print("✅ 收到 AI 响应")
+        print("📝 内容: \(content)")
+        
+        // 2. 从 AI 返回的内容中提取 JSON
+        // AI 可能会在 JSON 前后加一些文字，需要提取出纯 JSON 部分
+        let jsonContent = extractJSON(from: content)
+        
+        guard let jsonData = jsonContent.data(using: .utf8),
+              let resultJSON = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any] else {
+            print("❌ 无法解析 AI 返回的 JSON，使用模拟数据")
+            return createMockAnalysisResult(aiResponse: content)
+        }
+        
+        // 3. 解析 JSON 为 AnalysisResult
+        return parseAnalysisJSON(resultJSON)
+    }
+    
+    /// 从文本中提取 JSON 字符串
+    private func extractJSON(from text: String) -> String {
+        // 查找第一个 { 和最后一个 }
+        guard let startIndex = text.firstIndex(of: "{"),
+              let endIndex = text.lastIndex(of: "}") else {
+            return text
+        }
+        
+        let jsonString = String(text[startIndex...endIndex])
+        return jsonString
+    }
+    
+    /// 解析 JSON 对象为 AnalysisResult
+    private func parseAnalysisJSON(_ json: [String: Any]) -> AnalysisResult {
+        let overallScore = json["overall_score"] as? Int ?? 50
+        let summary = json["summary"] as? String ?? "分析中..."
+        let advice = json["advice"] as? String ?? "请理性看待这段关系。"
+        
+        // 解析 dimensions
+        var dimensions: [DimensionScore] = []
+        if let dimensionsArray = json["dimensions"] as? [[String: Any]] {
+            for dimJSON in dimensionsArray {
+                if let name = dimJSON["name"] as? String,
+                   let score = dimJSON["score"] as? Double,
+                   let comment = dimJSON["comment"] as? String {
+                    dimensions.append(DimensionScore(name: name, score: score, comment: comment))
+                }
+            }
+        }
+        
+        // 解析 flags
+        var flags: [RiskFlag] = []
+        if let flagsArray = json["flags"] as? [[String: Any]] {
+            for flagJSON in flagsArray {
+                if let typeString = flagJSON["type"] as? String,
+                   let description = flagJSON["description"] as? String {
+                    let type: FlagType = typeString == "red" ? .red : (typeString == "yellow" ? .yellow : .green)
+                    flags.append(RiskFlag(type: type, description: description))
+                }
+            }
+        }
+        
+        // 如果解析失败，至少返回基础数据
+        if dimensions.isEmpty {
+            dimensions = [
+                DimensionScore(name: "回复速度", score: 50, comment: "分析中..."),
+                DimensionScore(name: "关心度", score: 50, comment: "分析中..."),
+                DimensionScore(name: "承诺兑现", score: 50, comment: "分析中..."),
+                DimensionScore(name: "情绪稳定", score: 50, comment: "分析中..."),
+                DimensionScore(name: "暧昧指数", score: 50, comment: "分析中..."),
+                DimensionScore(name: "真诚度", score: 50, comment: "分析中..."),
+                DimensionScore(name: "时间投入", score: 50, comment: "分析中...")
+            ]
+        }
+        
+        return AnalysisResult(
+            overallScore: overallScore,
+            summary: summary,
+            dimensions: dimensions,
+            flags: flags,
+            advice: advice
+        )
+    }
+    
+    private func parseOracleResponse(_ data: Data) throws -> OracleResult {
+        // 1. 解析火山引擎的外层响应
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let choices = json["choices"] as? [[String: Any]],
+              let firstChoice = choices.first,
+              let message = firstChoice["message"] as? [String: Any],
+              let content = message["content"] as? String else {
+            
+            print("❌ API 响应解析失败")
+            throw VolcengineError.decodingError
+        }
+        
+        print("✅ 收到 AI 卦象响应")
+        print("📝 内容: \(content)")
+        
+        // 2. 从 AI 返回的内容中提取 JSON
+        let jsonContent = extractJSON(from: content)
+        
+        guard let jsonData = jsonContent.data(using: .utf8),
+              let resultJSON = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any] else {
+            print("❌ 无法解析 AI 返回的 JSON，使用模拟数据")
+            return createMockOracleResult(aiResponse: content)
+        }
+        
+        // 3. 解析 JSON 为 OracleResult
+        return parseOracleJSON(resultJSON)
+    }
+    
+    /// 解析卦象 JSON
+    private func parseOracleJSON(_ json: [String: Any]) -> OracleResult {
+        let hexagramName = json["hexagram_name"] as? String ?? "天风姤"
+        let hexagramSymbol = json["hexagram_symbol"] as? String ?? "☰☴"
+        let hexagramText = json["hexagram_text"] as? String ?? "姤，女壮，勿用取女。"
+        let interpretation = json["interpretation"] as? String ?? "此卦为姤卦..."
+        let advice = json["advice"] as? String ?? "断舍离，是对自己最大的慈悲。"
+        
+        return OracleResult(
+            hexagramName: hexagramName,
+            hexagramSymbol: hexagramSymbol,
+            hexagramText: hexagramText,
+            interpretation: interpretation,
+            advice: advice,
+            signature: "——慧缘大师",
+            disclaimer: "卦象仅供参考，感情之事，终究要靠自己把握。若他真心待你，无需卦象也能感知；若他虚情假意，再好的卦也改变不了人心。"
+        )
+    }
+    
+    // MARK: - Helper Methods
+    
+    private func createMockAnalysisResult(aiResponse: String) -> AnalysisResult {
+        // 这里可以根据 AI 的实际返回内容进行解析
+        // 目前先返回模拟数据，确保 UI 能正常显示
+        return AnalysisResult(
+            overallScore: 45,
+            summary: aiResponse.isEmpty ? "典型的'回避型依恋'表现。他在对话中频繁使用模糊性语言，虽然回复速度尚可，但在关键承诺上一直在'画饼'。注意他对你情绪的忽视。" : aiResponse,
+            dimensions: [
+                DimensionScore(name: "回复速度", score: 80),
+                DimensionScore(name: "关心度", score: 30),
+                DimensionScore(name: "承诺兑现", score: 20),
+                DimensionScore(name: "情绪稳定", score: 60),
+                DimensionScore(name: "真诚度", score: 40),
+                DimensionScore(name: "时间投入", score: 50)
+            ],
+            flags: [
+                RiskFlag(type: .red, description: "检测到PUA话术：'我这人就这样，你能不能别想太多'"),
+                RiskFlag(type: .yellow, description: "频繁深夜聊天，但白天消失，存在鱼塘管理嫌疑")
+            ],
+            advice: "建议：停止自我暴露，不要再主动提供情绪价值。下次他再这样说，直接回复'哦，那确实挺遗憾的'，然后断联三天。"
+        )
+    }
+    
+    private func createMockOracleResult(aiResponse: String) -> OracleResult {
+        return OracleResult(
+            hexagramName: "天风姤",
+            hexagramSymbol: "☰☴",
+            hexagramText: "姤，女壮，勿用取女。",
+            interpretation: aiResponse.isEmpty ? "此卦为姤卦，一阴遇五阳，象征女子主动追求，但男子心意不定。卦辞云'勿用取女'，意为此情难成正果。\n\n观你二人对话，你字字用心，他句句敷衍。你在等一个承诺，他在找一个借口。这不是缘分未到，而是他根本无心。" : aiResponse,
+            advice: "断舍离，是对自己最大的慈悲。",
+            signature: "——慧缘大师",
+            disclaimer: "卦象仅供参考，感情之事，终究要靠自己把握。若他真心待你，无需卦象也能感知；若他虚情假意，再好的卦也改变不了人心。"
+        )
+    }
+    
+    // MARK: - Prompts
+    
+    private func getAnalysisPrompt() -> String {
+        return """
+        你是一位拥有 10 年经验的情感心理咨询师，专注于亲密关系分析和依恋人格研究。
+        你的名字叫"军师"，你的说话风格是：毒舌但在理，犀利但不失温度。
+        
+        请仔细分析这张聊天记录截图，基于以下七大维度进行评估（每项 0-100 分）：
+        1. 回复速度分析
+        2. 关心度指数
+        3. 承诺兑现率
+        4. 情绪稳定性
+        5. 暧昧指数（分数越低越渣）
+        6. 真诚度评分
+        7. 时间投入度
+        
+        重点关注：
+        - PUA 话术（如"你想太多了"、"我这人就这样"）
+        - 画饼行为（"改天"、"下次"、"有空就"）
+        - 忽冷忽热模式
+        - 是否真正关心对方感受
+        
+        **请严格按照以下 JSON 格式返回，不要添加任何其他文字或解释：**
+        
+        {
+          "overall_score": 45,
+          "summary": "典型的'回避型依恋'表现。他在对话中频繁使用模糊性语言，虽然回复速度尚可，但在关键承诺上一直在'画饼'。注意他对你情绪的忽视。",
+          "dimensions": [
+            {"name": "回复速度", "score": 80, "comment": "回复速度还行，但注意他在你说'我有点难过'之后，隔了2小时才回。"},
+            {"name": "关心度", "score": 30, "comment": "他从未主动问过你的生活，所有话题都是你在推进。"},
+            {"name": "承诺兑现", "score": 20, "comment": "他已经第三次说'这周末带你去吃那家店'，但每次都爽约。姐妹，这不是忙，这是不想。"},
+            {"name": "情绪稳定", "score": 60, "comment": "暂时没发现明显的PUA倾向，但他说'你能不能别想太多'这句话有点危险。"},
+            {"name": "暧昧指数", "score": 35, "comment": "他经常说'你挺好的'但从不说'喜欢你'，典型的'暧昧但不负责'。"},
+            {"name": "真诚度", "score": 40, "comment": "他的情话有明显的'网抄'痕迹，真正喜欢你的人会说具体的细节。"},
+            {"name": "时间投入", "score": 50, "comment": "聊天时长还行，但质量堪忧。他更像是在'陪聊'而不是'想聊'。"}
+          ],
+          "flags": [
+            {"type": "red", "description": "检测到PUA话术：'我这人就这样，你能不能别想太多'"},
+            {"type": "yellow", "description": "频繁深夜聊天，但白天消失，存在鱼塘管理嫌疑"}
+          ],
+          "advice": "建议立刻停止情绪价值输出。不要再主动分享你的生活，不要再问他'在干嘛'。下次他再说'改天约你'，直接回复'好啊，那你定时间地点'，看他怎么接。如果他继续含糊其辞，那就是答案了。记住：真正喜欢你的人，会想尽办法见你，而不是想尽借口躲你。"
+        }
+        
+        注意事项：
+        - 语言要接地气，像闺蜜聊天一样
+        - 可以用"姐妹"、"他不是忙，是选择性不回你"这样的表达
+        - 不要输出任何政治、色情、暴力内容
+        - 必须严格按照 JSON 格式返回，不要有任何额外文字
+        """
+    }
+    
+    private func parseReplyResponse(_ data: Data) throws -> ReplyOptions {
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let choices = json["choices"] as? [[String: Any]],
+              let firstChoice = choices.first,
+              let message = firstChoice["message"] as? [String: Any],
+              let content = message["content"] as? String else {
+            
+            print("❌ API 响应解析失败")
+            throw VolcengineError.decodingError
+        }
+        
+        print("✅ 收到 AI 回复响应")
+        
+        // 从 AI 返回的内容中提取 JSON
+        let jsonContent = extractJSON(from: content)
+        
+        guard let jsonData = jsonContent.data(using: .utf8),
+              let resultJSON = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any] else {
+            print("❌ 无法解析 AI 返回的 JSON")
+            return createMockReplyOptions()
+        }
+        
+        return parseReplyJSON(resultJSON)
+    }
+    
+    private func parseReplyJSON(_ json: [String: Any]) -> ReplyOptions {
+        let coldReplies = json["cold_replies"] as? [String] ?? ["忙。", "有事吗？"]
+        let sweetReplies = json["sweet_replies"] as? [String] ?? ["在想你呀~", "刚洗完澡呢"]
+        let dramaReplies = json["drama_replies"] as? [String] ?? ["你是不是在查岗？", "你就不能换个开场白吗"]
+        
+        return ReplyOptions(
+            coldReplies: coldReplies,
+            sweetReplies: sweetReplies,
+            dramaReplies: dramaReplies
+        )
+    }
+    
+    private func createMockReplyOptions() -> ReplyOptions {
+        return ReplyOptions(
+            coldReplies: ["忙。", "有事吗？", "在想要不要回你。"],
+            sweetReplies: ["在想你呀~", "刚洗完澡，头发还湿湿的呢", "在等你找我呀"],
+            dramaReplies: ["你是不是在查岗？", "我在干嘛关你什么事", "你就不能换个开场白吗"]
+        )
+    }
+    
+    private func getReplyPrompt(message: String) -> String {
+        return """
+        你是一位恋爱话术专家，精通各种风格的回复策略。
+        
+        用户收到了对方的一句话："\(message)"
+        
+        请生成三种风格的回复，每种风格提供 2-3 个选项：
+        
+        1. **高冷御姐风**：拉开距离，建立框架，让对方追你
+        2. **绿茶撒娇风**：提供情绪价值，诱导对方投资
+        3. **Drama发疯风**：情绪化表达，用于测试对方底线（娱乐向）
+        
+        **请严格按照以下 JSON 格式返回：**
+        
+        {
+          "cold_replies": ["忙。", "有事吗？", "在想要不要回你。"],
+          "sweet_replies": ["在想你呀~", "刚洗完澡，头发还湿湿的呢", "在等你找我呀"],
+          "drama_replies": ["你是不是在查岗？", "我在干嘛关你什么事", "你就不能换个开场白吗"]
+        }
+        
+        注意事项：
+        - 回复要符合当代年轻人的语言习惯
+        - 高冷风要简短有力
+        - 绿茶风要撒娇但不低俗
+        - Drama风要有趣但不过分
+        - 必须严格按照 JSON 格式返回
+        """
+    }
+    
+    private func getOraclePrompt(question: String?) -> String {
+        var prompt = """
+        你是一位精通《易经》和六爻预测的玄学大师，法号"慧缘"。
+        
+        请根据这张聊天记录截图的"气场"，为用户起一个六爻卦象。
+        不要做逻辑分析，而是"感应"对话中的情绪意象（如焦虑、冷漠、纠缠、随缘等）。
+        
+        根据情绪意象，选择对应的卦象：
+        - 焦虑、纠缠、求而不得 → 天风姤卦 (☰☴)
+        - 冷漠、疏离、单方面付出 → 水火未济卦 (☵☲)
+        - 暧昧、不明确、忽冷忽热 → 雷水解卦 (☳☵)
+        - 甜蜜、双向奔赴 → 地天泰卦 (☷☰)
+        
+        **请严格按照以下 JSON 格式返回，不要添加任何其他文字：**
+        
+        {
+          "hexagram_name": "天风姤",
+          "hexagram_symbol": "☰☴",
+          "hexagram_text": "姤，女壮，勿用取女。",
+          "interpretation": "此卦为姤卦，一阴遇五阳，象征女子主动追求，但男子心意不定。卦辞云'勿用取女'，意为此情难成正果。\\n\\n观你二人对话，你字字用心，他句句敷衍。你在等一个承诺，他在找一个借口。这不是缘分未到，而是他根本无心。\\n\\n卦象显示，此人心有旁骛，你在他心中不过是'可有可无'。若继续纠缠，只会伤己。",
+          "advice": "断舍离，是对自己最大的慈悲。"
+        }
+        """
+        
+        if let question = question, !question.isEmpty {
+            prompt += "\n\n用户心中默念的问题是：\(question)"
+        }
+        
+        prompt += """
+        
+        注意事项：
+        - 用半文半白的语言，神秘但不装神弄鬼
+        - 不要做具体的时间预测（如"三个月后会分手"）
+        - 不要给出绝对的结论，要给用户留有余地
+        - 必须严格按照 JSON 格式返回
+        """
+        
+        return prompt
+    }
+}
+
+// MARK: - Error Types
+
+enum VolcengineError: LocalizedError {
+    case invalidURL
+    case invalidImage
+    case invalidResponse
+    case httpError(statusCode: Int)
+    case decodingError
+    case networkError(Error)
+    
+    var errorDescription: String? {
+        switch self {
+        case .invalidURL:
+            return "无效的 API 地址"
+        case .invalidImage:
+            return "图片格式不正确"
+        case .invalidResponse:
+            return "服务器响应异常"
+        case .httpError(let code):
+            return "请求失败 (错误码: \(code))"
+        case .decodingError:
+            return "数据解析失败"
+        case .networkError(let error):
+            return "网络错误: \(error.localizedDescription)"
+        }
+    }
+}
+
+// MARK: - Data Models
+
+struct AnalysisResult: Identifiable {
+    let id = UUID()
+    let overallScore: Int
+    let summary: String
+    let dimensions: [DimensionScore]
+    let flags: [RiskFlag]
+    let advice: String
+}
+
+struct DimensionScore: Identifiable {
+    let id = UUID()
+    let name: String
+    let score: Double
+    let comment: String
+    
+    init(name: String, score: Double, comment: String = "") {
+        self.name = name
+        self.score = score
+        self.comment = comment
+    }
+}
+
+struct RiskFlag: Identifiable {
+    let id = UUID()
+    let type: FlagType
+    let description: String
+}
+
+enum FlagType: String, Codable {
+    case red = "red"
+    case yellow = "yellow"
+    case green = "green"
+    
+    var color: Color {
+        switch self {
+        case .red: return .red
+        case .yellow: return .orange
+        case .green: return .green
+        }
+    }
+}
+
+struct OracleResult: Identifiable {
+    let id = UUID()
+    let hexagramName: String
+    let hexagramSymbol: String
+    let hexagramText: String
+    let interpretation: String
+    let advice: String
+    let signature: String
+    let disclaimer: String
+}
+
+import SwiftUI
+

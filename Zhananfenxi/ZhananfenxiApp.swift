@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 @main
 struct ZhananfenxiApp: App {
@@ -13,5 +14,7 @@ struct ZhananfenxiApp: App {
         WindowGroup {
             ContentView()
         }
+        .modelContainer(for: AnalysisHistory.self)
     }
 }
+
