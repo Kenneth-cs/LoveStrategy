@@ -20,9 +20,23 @@ struct ReplyAssistantView: View {
                 VStack(spacing: 25) {
                     // Header
                     VStack(spacing: 10) {
-                        Text("高情商回复助手")
-                            .font(.title2)
-                            .bold()
+                        HStack(spacing: 8) {
+                            Image(systemName: "message.badge.filled.fill")
+                                .font(.title2)
+                                .foregroundStyle(AppTheme.iconGradient)
+                            
+                            Text("高情商回复助手")
+                                .font(.title2)
+                                .bold()
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        colors: [AppTheme.accentPink, AppTheme.darkPink],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                        }
+                        
                         Text("输入对方的话，AI 帮你生成三种风格的回复")
                             .font(.caption)
                             .foregroundColor(.secondary)
@@ -65,23 +79,10 @@ struct ReplyAssistantView: View {
                                 Text("生成回复话术")
                             }
                         }
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(inputMessage.isEmpty ? Color.gray : Color(red: 0.8, green: 0.2, blue: 0.4))
-                        .cornerRadius(30)
-                        .shadow(radius: 5)
                     }
+                    .buttonStyle(PrimaryButtonStyle(isDisabled: inputMessage.isEmpty || service.isAnalyzing))
                     .disabled(inputMessage.isEmpty || service.isAnalyzing)
                     .padding(.horizontal)
-                    
-                    // 加载状态
-                    if service.isAnalyzing {
-                        ReplyLoadingView()
-                            .padding(.horizontal)
-                            .transition(.opacity)
-                    }
                     
                     // 回复选项
                     if let options = replyOptions {
@@ -127,15 +128,22 @@ struct ReplyAssistantView: View {
     private func generateReplies() {
         Task {
             do {
+                print("🔄 开始生成回复，输入内容: \(inputMessage)")
                 // 调用 AI 生成回复
                 let options = try await service.generateReplies(for: inputMessage)
+                print("✅ 生成回复成功")
+                print("高冷: \(options.coldReplies)")
+                print("绿茶: \(options.sweetReplies)")
+                print("Drama: \(options.dramaReplies)")
+                
                 await MainActor.run {
                     withAnimation {
                         self.replyOptions = options
                     }
                 }
             } catch {
-                print("生成回复失败: \(error)")
+                print("❌ 生成回复失败: \(error)")
+                print("错误详情: \(error.localizedDescription)")
             }
         }
     }
@@ -149,6 +157,8 @@ struct ReplyStyleCard: View {
     let description: String
     let replies: [String]
     let icon: String
+    
+    @State private var copiedIndex: Int? = nil
     
     var body: some View {
         VStack(alignment: .leading, spacing: 15) {
@@ -179,11 +189,35 @@ struct ReplyStyleCard: View {
                     Spacer()
                     
                     Button(action: {
+                        // 复制到剪贴板
                         UIPasteboard.general.string = reply
-                        // TODO: 显示复制成功提示
+                        
+                        // 触觉反馈
+                        let generator = UIImpactFeedbackGenerator(style: .light)
+                        generator.impactOccurred()
+                        
+                        // 显示复制成功状态
+                        withAnimation {
+                            copiedIndex = index
+                        }
+                        
+                        // 2秒后恢复
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                            withAnimation {
+                                copiedIndex = nil
+                            }
+                        }
                     }) {
-                        Image(systemName: "doc.on.doc")
-                            .foregroundColor(Color(red: 0.8, green: 0.2, blue: 0.4))
+                        HStack(spacing: 4) {
+                            Image(systemName: copiedIndex == index ? "checkmark" : "doc.on.doc")
+                                .foregroundColor(copiedIndex == index ? .green : AppTheme.accentPink)
+                            
+                            if copiedIndex == index {
+                                Text("已复制")
+                                    .font(.caption)
+                                    .foregroundColor(.green)
+                            }
+                        }
                     }
                 }
                 .padding()

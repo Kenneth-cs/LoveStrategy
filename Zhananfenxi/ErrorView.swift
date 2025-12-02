@@ -151,13 +151,7 @@ struct ErrorView: View {
                         .foregroundColor(.white)
                         .frame(minWidth: 100)
                         .padding()
-                        .background(
-                            LinearGradient(
-                                colors: [.pink, .purple],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
+                        .background(AppTheme.primaryGradient)
                         .cornerRadius(12)
                     }
                 }
@@ -224,13 +218,7 @@ struct EmptyStateView: View {
                         .foregroundColor(.white)
                         .padding(.horizontal, 30)
                         .padding(.vertical, 12)
-                        .background(
-                            LinearGradient(
-                                colors: [.pink, .purple],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
+                        .background(AppTheme.primaryGradient)
                         .cornerRadius(12)
                 }
                 .padding(.top, 10)

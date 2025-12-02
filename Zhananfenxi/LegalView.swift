@@ -70,13 +70,7 @@ struct WelcomeView: View {
             // Logo
             Image(systemName: "heart.text.square.fill")
                 .font(.system(size: 80))
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [.pink, .purple],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+                .foregroundStyle(AppTheme.iconGradient)
             
             // 标题
             VStack(spacing: 10) {
@@ -154,18 +148,8 @@ struct WelcomeView: View {
             } label: {
                 Text("同意并继续")
                     .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 56)
-                    .background(
-                        LinearGradient(
-                            colors: [.pink, .purple],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .cornerRadius(16)
             }
+            .buttonStyle(PrimaryButtonStyle())
             .padding(.horizontal)
             .padding(.bottom, 30)
         }
@@ -187,7 +171,7 @@ struct FeatureRow: View {
         HStack(spacing: 15) {
             Image(systemName: icon)
                 .font(.system(size: 24))
-                .foregroundColor(.purple)
+                .foregroundColor(AppTheme.accentPink)
                 .frame(width: 30)
             
             Text(text)

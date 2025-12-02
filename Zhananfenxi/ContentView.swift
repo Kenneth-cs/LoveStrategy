@@ -48,7 +48,7 @@ struct MainTabView: View {
                     Label("我的", systemImage: "person.circle.fill")
                 }
         }
-        .accentColor(Color(red: 0.8, green: 0.2, blue: 0.4))
+        .accentColor(AppTheme.darkPink)
     }
 }
 
@@ -88,7 +88,7 @@ struct HomeAnalysisView: View {
                             VStack(spacing: 2) {
                                 Text("\(UsageLimitManager.getRemainingCount())")
                                     .font(.system(size: 24, weight: .bold))
-                                    .foregroundColor(UsageLimitManager.getRemainingCount() > 0 ? .purple : .red)
+                                    .foregroundColor(UsageLimitManager.getRemainingCount() > 0 ? AppTheme.accentPink : .red)
                                 Text("剩余次数")
                                     .font(.caption2)
                                     .foregroundColor(.secondary)
@@ -97,7 +97,7 @@ struct HomeAnalysisView: View {
                             .padding(.vertical, 8)
                             .background(
                                 RoundedRectangle(cornerRadius: 12)
-                                    .fill(Color.purple.opacity(0.1))
+                                    .fill(AppTheme.softPink)
                             )
                         }
                     }
@@ -105,32 +105,50 @@ struct HomeAnalysisView: View {
                     .padding()
                     
                     // Image Upload Area
-                    Button(action: { showImagePicker = true }) {
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 16)
-                                .fill(Color.gray.opacity(0.1))
-                                .frame(height: 200)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 16)
-                                        .stroke(style: StrokeStyle(lineWidth: 2, dash: [5]))
-                                        .foregroundColor(.gray.opacity(0.5))
-                                )
-                            
-                            if let img = selectedImage {
-                                Image(uiImage: img)
-                                    .resizable()
-                                    .scaledToFit()
-                                    .frame(height: 180)
-                                    .cornerRadius(12)
-                            } else {
-                                VStack {
-                                    Image(systemName: "plus.viewfinder")
-                                        .font(.system(size: 40))
-                                        .foregroundColor(.gray)
-                                    Text("点击上传微信截图")
-                                        .foregroundColor(.gray)
+                    ZStack(alignment: .topTrailing) {
+                        Button(action: { showImagePicker = true }) {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 16)
+                                    .fill(Color.gray.opacity(0.1))
+                                    .frame(height: 200)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 16)
+                                            .stroke(style: StrokeStyle(lineWidth: 2, dash: [5]))
+                                            .foregroundColor(.gray.opacity(0.5))
+                                    )
+                                
+                                if let img = selectedImage {
+                                    Image(uiImage: img)
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(height: 180)
+                                        .cornerRadius(12)
+                                } else {
+                                    VStack {
+                                        Image(systemName: "plus.viewfinder")
+                                            .font(.system(size: 40))
+                                            .foregroundColor(.gray)
+                                        Text("点击上传微信截图")
+                                            .foregroundColor(.gray)
+                                    }
                                 }
                             }
+                        }
+                        
+                        // 删除按钮
+                        if selectedImage != nil {
+                            Button {
+                                withAnimation {
+                                    selectedImage = nil
+                                    analysisResult = nil
+                                }
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.system(size: 28))
+                                    .foregroundStyle(.white, AppTheme.accentPink)
+                                    .shadow(radius: 2)
+                            }
+                            .padding(8)
                         }
                     }
                     .padding(.horizontal)
@@ -147,25 +165,10 @@ struct HomeAnalysisView: View {
                                 Text("开始深度分析")
                             }
                         }
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(selectedImage == nil ? Color.gray : Color(red: 0.8, green: 0.2, blue: 0.4))
-                        .cornerRadius(30)
-                        .shadow(radius: 5)
                     }
+                    .buttonStyle(PrimaryButtonStyle(isDisabled: selectedImage == nil || service.isAnalyzing))
                     .disabled(selectedImage == nil || service.isAnalyzing)
                     .padding(.horizontal)
-                    
-                    // Loading State
-                    if service.isAnalyzing {
-                        AnimatedLoadingView()
-                            .transition(.scale.combined(with: .opacity))
-                        
-                        AnalysisLoadingView()
-                            .transition(.opacity)
-                    }
                     
                     // Result Area
                     if let result = analysisResult {
@@ -179,11 +182,26 @@ struct HomeAnalysisView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    Text("Love Strategy")
-                        .font(.custom("Didot", size: 20))
-                        .bold()
+                    HStack(spacing: 8) {
+                        Image(systemName: "heart.text.square.fill")
+                            .font(.system(size: 20))
+                            .foregroundStyle(AppTheme.iconGradient)
+                        
+                        Text("Love Strategy")
+                            .font(.custom("Didot", size: 20))
+                            .bold()
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [AppTheme.accentPink, AppTheme.darkPink],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                    }
                 }
             }
+            .toolbarBackground(AppTheme.softPink, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
             .sheet(isPresented: $showImagePicker) {
                 ImagePicker(image: $selectedImage)
             }
@@ -268,7 +286,7 @@ struct ResultCardView: View {
                 Spacer()
                 
                 // 风险等级图标
-                VStack {
+        VStack {
                     Image(systemName: riskIcon(score: result.overallScore))
                         .font(.system(size: 30))
                         .foregroundColor(scoreColor(score: result.overallScore))
@@ -342,10 +360,7 @@ struct ResultCardView: View {
                 .background(Color.yellow.opacity(0.1))
                 .cornerRadius(8)
         }
-        .padding()
-        .background(Color(UIColor.secondarySystemBackground))
-        .cornerRadius(20)
-        .padding()
+        .cardStyle(backgroundColor: AppTheme.softPink)
     }
     
     func scoreColor(score: Int) -> Color {
@@ -381,10 +396,23 @@ struct MetaphysicsView: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 30) {
-                Text("心理投射测试")
-                    .font(.title)
-                    .bold()
-                    .padding(.top)
+                HStack(spacing: 8) {
+                    Image(systemName: "sparkles")
+                        .font(.title2)
+                        .foregroundStyle(AppTheme.iconGradient)
+                    
+                    Text("心理投射测试")
+                        .font(.title2)
+                        .bold()
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [AppTheme.accentPink, AppTheme.darkPink],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                }
+                .padding(.top)
                 
                 Text("上传聊天记录，AI 将通过卦象隐喻进行心理投射分析")
                     .font(.caption)
@@ -393,16 +421,60 @@ struct MetaphysicsView: View {
                     .padding(.horizontal)
                     .padding(.bottom)
                 
-                ZStack {
-                    Circle()
-                        .stroke(lineWidth: 2)
-                        .foregroundColor(.black.opacity(0.1))
-                        .frame(width: 200, height: 200)
+                // 图片预览或占位符
+                ZStack(alignment: .topTrailing) {
+                    Button(action: { showImagePicker = true }) {
+                        ZStack {
+                            if let image = selectedImage {
+                                // 显示已选择的图片
+                                Image(uiImage: image)
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 200, height: 200)
+                                    .clipShape(Circle())
+                                    .overlay(
+                                        Circle()
+                                            .stroke(AppTheme.accentPink, lineWidth: 3)
+                                    )
+                            } else {
+                                // 占位符
+                                ZStack {
+                                    Circle()
+                                        .stroke(style: StrokeStyle(lineWidth: 2, dash: [5]))
+                                        .foregroundColor(.gray.opacity(0.5))
+                                        .frame(width: 200, height: 200)
+                                    
+                                    VStack(spacing: 15) {
+                                        Image(systemName: "yin.yang")
+                                            .font(.system(size: 60))
+                                            .foregroundColor(.gray.opacity(0.5))
+                                            .rotationEffect(.degrees(isCalculating ? 360 : 0))
+                                            .animation(isCalculating ? Animation.linear(duration: 2).repeatForever(autoreverses: false) : .default, value: isCalculating)
+                                        
+                                        Text("点击上传截图")
+                                            .font(.caption)
+                                            .foregroundColor(.gray)
+                                    }
+                                }
+                            }
+                        }
+                    }
                     
-                    Image(systemName: "yin.yang")
-                        .font(.system(size: 80))
-                        .rotationEffect(.degrees(isCalculating ? 360 : 0))
-                        .animation(isCalculating ? Animation.linear(duration: 2).repeatForever(autoreverses: false) : .default, value: isCalculating)
+                    // 删除按钮
+                    if selectedImage != nil {
+                        Button {
+                            withAnimation {
+                                selectedImage = nil
+                                oracleResult = nil
+                            }
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 28))
+                                .foregroundStyle(.white, AppTheme.accentPink)
+                                .shadow(radius: 2)
+                        }
+                        .offset(x: 15, y: -15)
+                    }
                 }
                 .padding()
                 
@@ -410,31 +482,39 @@ struct MetaphysicsView: View {
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .padding()
                 
-                Button(action: { showImagePicker = true }) {
-                    HStack {
-                        Image(systemName: selectedImage == nil ? "photo.on.rectangle.angled" : "checkmark.circle.fill")
-                        Text(selectedImage == nil ? "上传聊天截图" : "已选择图片")
-                    }
-                    .font(.headline)
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.gray.opacity(0.8))
-                    .cornerRadius(15)
-                }
-                .padding(.horizontal)
-                
-                Button("开始心理投射测试") {
+                // 开始测试按钮
+                Button {
                     performOracle()
+                } label: {
+                    HStack(spacing: 10) {
+                        if isCalculating {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            Text("AI 正在感知能量场...")
+                        } else {
+                            Image(systemName: "sparkles")
+                            Text("开始心理投射测试")
+                        }
+                    }
                 }
-                .font(.headline)
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(selectedImage == nil ? Color.gray : Color.black)
-                .cornerRadius(30)
+                .buttonStyle(PrimaryButtonStyle(isDisabled: selectedImage == nil || isCalculating))
                 .disabled(selectedImage == nil || isCalculating)
                 .padding(.horizontal)
+                
+                // 加载提示
+                if isCalculating {
+                    VStack(spacing: 10) {
+                        Text("正在通过卦象进行心理投射分析")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        
+                        Text("预计需要 10-15 秒")
+                            .font(.caption2)
+                            .foregroundColor(.gray)
+                    }
+                    .padding(.top, 10)
+                    .transition(.opacity)
+                }
                 
                 Spacer()
             }
@@ -530,8 +610,8 @@ struct OracleResultView: View {
                         .background(Color.yellow.opacity(0.1))
                         .cornerRadius(10)
                         .padding()
-                }
-                .padding()
+        }
+        .padding()
             }
             .navigationTitle("卦象")
             .navigationBarTitleDisplayMode(.inline)
@@ -550,6 +630,7 @@ struct ProfileView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var showUserAgreement = false
     @State private var showPrivacyPolicy = false
+    @State private var showUserGuide = false
     @State private var dailyUsageCount = UserDefaults.standard.integer(forKey: "dailyUsageCount")
     
     var body: some View {
@@ -557,15 +638,28 @@ struct ProfileView: View {
             List {
                 Section {
                     HStack {
-                        Image(systemName: "person.circle.fill")
-                            .font(.system(size: 60))
-                            .foregroundColor(Color(red: 0.8, green: 0.2, blue: 0.4))
-                        VStack(alignment: .leading) {
+                        ZStack {
+                            Circle()
+                                .fill(AppTheme.softPink)
+                                .frame(width: 70, height: 70)
+                            
+                            Image(systemName: "person.circle.fill")
+                                .font(.system(size: 60))
+                                .foregroundStyle(AppTheme.iconGradient)
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 4) {
                             Text("恋爱军师用户")
                                 .font(.headline)
-                            Text("免费版")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                            
+                            HStack(spacing: 4) {
+                                Image(systemName: "crown.fill")
+                                    .font(.caption2)
+                                    .foregroundColor(AppTheme.accentPink)
+                                Text("免费版")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
                         }
                         .padding(.leading)
                         
@@ -576,7 +670,7 @@ struct ProfileView: View {
                     // 今日使用次数
                     HStack {
                         Image(systemName: "chart.bar.fill")
-                            .foregroundColor(.purple)
+                            .foregroundColor(AppTheme.accentPink)
                         Text("今日已使用")
                         Spacer()
                         Text("\(dailyUsageCount)/3 次")
@@ -591,12 +685,13 @@ struct ProfileView: View {
                         Label("历史记录", systemImage: "clock.fill")
                     }
                     
-                    Button {
-                        // TODO: 使用说明
-                    } label: {
-                        Label("使用说明", systemImage: "book.fill")
-                            .foregroundColor(.primary)
-                    }
+                    // TODO: 后续恢复使用说明
+//                    Button {
+//                        showUserGuide = true
+//                    } label: {
+//                        Label("使用说明", systemImage: "book.fill")
+//                            .foregroundColor(.primary)
+//                    }
                 }
                 
                 Section("法律与隐私") {
@@ -622,21 +717,17 @@ struct ProfileView: View {
                         Text("1.0.0")
                             .foregroundColor(.secondary)
                     }
-                    
-                    Button {
-                        // TODO: 关于我们
-                    } label: {
-                        Label("关于我们", systemImage: "info.circle")
-                            .foregroundColor(.primary)
-                    }
                 }
             }
-            .navigationTitle("我的")
+            .navigationBarHidden(true)
             .sheet(isPresented: $showUserAgreement) {
                 UserAgreementView()
             }
             .sheet(isPresented: $showPrivacyPolicy) {
                 PrivacyPolicyView()
+            }
+            .sheet(isPresented: $showUserGuide) {
+                UserGuideView()
             }
             .onAppear {
                 dailyUsageCount = UserDefaults.standard.integer(forKey: "dailyUsageCount")

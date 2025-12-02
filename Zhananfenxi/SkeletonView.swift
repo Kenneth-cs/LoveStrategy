@@ -129,13 +129,7 @@ struct AnimatedLoadingView: View {
             // 动画 Logo
             Image(systemName: "brain.head.profile")
                 .font(.system(size: 60))
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [.pink, .purple],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+                .foregroundStyle(AppTheme.iconGradient)
                 .scaleEffect(isAnimating ? 1.2 : 1.0)
                 .opacity(isAnimating ? 0.6 : 1.0)
                 .animation(
@@ -157,7 +151,7 @@ struct AnimatedLoadingView: View {
             
             // 进度指示器
             ProgressView()
-                .progressViewStyle(CircularProgressViewStyle(tint: .purple))
+                .progressViewStyle(CircularProgressViewStyle(tint: AppTheme.accentPink))
                 .scaleEffect(1.5)
         }
         .padding(40)
@@ -181,7 +175,7 @@ struct ReplyLoadingView: View {
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: "message.badge.waveform")
-                .foregroundColor(.purple)
+                .foregroundColor(AppTheme.accentPink)
             
             Text("AI 正在生成回复\(String(repeating: ".", count: dotCount))")
                 .font(.subheadline)
@@ -189,7 +183,7 @@ struct ReplyLoadingView: View {
         }
         .padding()
         .frame(maxWidth: .infinity)
-        .background(Color.purple.opacity(0.1))
+        .background(AppTheme.softPink)
         .cornerRadius(12)
         .onReceive(timer) { _ in
             dotCount = (dotCount + 1) % 4
