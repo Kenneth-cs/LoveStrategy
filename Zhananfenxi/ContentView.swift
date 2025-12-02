@@ -49,6 +49,8 @@ struct MainTabView: View {
                 }
         }
         .accentColor(AppTheme.darkPink)
+        // iPad 适配：禁用侧边栏模式，使用 iPhone 样式的 TabView
+        .tabViewStyle(.automatic)
     }
 }
 
@@ -68,7 +70,7 @@ struct HomeAnalysisView: View {
     @State private var showNewUserWelcome = false
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
                     // Header
@@ -360,7 +362,7 @@ struct ResultCardView: View {
                 .background(Color.yellow.opacity(0.1))
                 .cornerRadius(8)
         }
-        .cardStyle(backgroundColor: AppTheme.softPink)
+        .cardStyle(backgroundColor: Color(red: 0.949, green: 0.945, blue: 0.965))
     }
     
     func scoreColor(score: Int) -> Color {
@@ -394,7 +396,7 @@ struct MetaphysicsView: View {
     @State private var oracleResult: OracleResult?
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             VStack(spacing: 30) {
                 HStack(spacing: 8) {
                     Image(systemName: "sparkles")
