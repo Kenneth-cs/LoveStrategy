@@ -10,6 +10,22 @@ import SwiftUI
 // MARK: - Main Content View
 
 struct ContentView: View {
+    @State private var hasAgreedToTerms = UserDefaults.standard.bool(forKey: "hasAgreedToTerms")
+    
+    var body: some View {
+        Group {
+            if hasAgreedToTerms {
+                MainTabView()
+            } else {
+                WelcomeView(hasAgreed: $hasAgreedToTerms)
+            }
+        }
+    }
+}
+
+// MARK: - Main Tab View
+
+struct MainTabView: View {
     var body: some View {
         TabView {
             HomeAnalysisView()
@@ -24,7 +40,7 @@ struct ContentView: View {
             
             MetaphysicsView()
                 .tabItem {
-                    Label("截图起卦", systemImage: "star.circle.fill")
+                    Label("心理投射", systemImage: "star.circle.fill")
                 }
             
             ProfileView()
@@ -47,18 +63,43 @@ struct HomeAnalysisView: View {
     @State private var analysisResult: AnalysisResult?
     @State private var showError = false
     @State private var errorMessage = ""
+    @State private var showLimitAlert = false
+    @State private var limitMessage = ""
+    @State private var showNewUserWelcome = false
     
     var body: some View {
         NavigationView {
             ScrollView {
                 VStack(spacing: 20) {
                     // Header
-                    VStack(alignment: .leading) {
-                        Text("上传聊天记录")
-                            .font(.title2).bold()
-                        Text("AI 帮你识别潜台词，以此'鉴'人")
-                            .font(.subheadline)
-                            .foregroundColor(.gray)
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack {
+                            VStack(alignment: .leading) {
+                                Text("上传聊天记录")
+                                    .font(.title2).bold()
+                                Text("AI 帮你识别潜台词，以此'鉴'人")
+                                    .font(.subheadline)
+                                    .foregroundColor(.gray)
+                            }
+                            
+                            Spacer()
+                            
+                            // 剩余次数显示
+                            VStack(spacing: 2) {
+                                Text("\(UsageLimitManager.getRemainingCount())")
+                                    .font(.system(size: 24, weight: .bold))
+                                    .foregroundColor(UsageLimitManager.getRemainingCount() > 0 ? .purple : .red)
+                                Text("剩余次数")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color.purple.opacity(0.1))
+                            )
+                        }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding()
@@ -117,6 +158,15 @@ struct HomeAnalysisView: View {
                     .disabled(selectedImage == nil || service.isAnalyzing)
                     .padding(.horizontal)
                     
+                    // Loading State
+                    if service.isAnalyzing {
+                        AnimatedLoadingView()
+                            .transition(.scale.combined(with: .opacity))
+                        
+                        AnalysisLoadingView()
+                            .transition(.opacity)
+                    }
+                    
                     // Result Area
                     if let result = analysisResult {
                         ResultCardView(result: result)
@@ -142,17 +192,44 @@ struct HomeAnalysisView: View {
             } message: {
                 Text(errorMessage)
             }
+            .alert("使用次数限制", isPresented: $showLimitAlert) {
+                Button("知道了", role: .cancel) {}
+            } message: {
+                Text(limitMessage)
+            }
+            .alert("🎉 新用户福利", isPresented: $showNewUserWelcome) {
+                Button("开始体验", role: .cancel) {}
+            } message: {
+                Text(UsageLimitManager.getNewUserWelcomeMessage())
+            }
+            .onAppear {
+                // 检查是否显示新手福利
+                if UsageLimitManager.isNewUser() && !UsageLimitManager.hasReceivedBonus() {
+                    showNewUserWelcome = true
+                    UsageLimitManager.markBonusReceived()
+                }
+            }
         }
     }
     
     private func analyzeImage() {
         guard let image = selectedImage else { return }
         
+        // 检查使用次数限制
+        if !UsageLimitManager.canUseFeature() {
+            limitMessage = UsageLimitManager.getLimitReachedMessage()
+            showLimitAlert = true
+            return
+        }
+        
         Task {
             do {
                 let result = try await service.analyzeImages([image])
                 await MainActor.run {
                     self.analysisResult = result
+                    
+                    // 增加使用次数
+                    UsageLimitManager.incrementUsage()
                     
                     // 保存到历史记录
                     let imageData = image.jpegData(compressionQuality: 0.7)
@@ -258,7 +335,7 @@ struct ResultCardView: View {
             }
             
             // 免责声明
-            Text("⚠️ 本分析由 AI 生成，仅供参考。感情是复杂的，请结合实际情况理性判断。")
+            Text(LegalDocuments.shortDisclaimer)
                 .font(.caption2)
                 .foregroundColor(.secondary)
                 .padding()
@@ -304,14 +381,16 @@ struct MetaphysicsView: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 30) {
-                Text("截图六爻起卦")
+                Text("心理投射测试")
                     .font(.title)
                     .bold()
                     .padding(.top)
                 
-                Text("上传聊天记录，AI 将根据对话能量场为你排盘")
+                Text("上传聊天记录，AI 将通过卦象隐喻进行心理投射分析")
                     .font(.caption)
                     .foregroundColor(.gray)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
                     .padding(.bottom)
                 
                 ZStack {
@@ -327,7 +406,7 @@ struct MetaphysicsView: View {
                 }
                 .padding()
                 
-                TextField("心中默念你的问题 (选填)", text: $question)
+                TextField("你想了解的问题 (选填)", text: $question)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .padding()
                 
@@ -345,7 +424,7 @@ struct MetaphysicsView: View {
                 }
                 .padding(.horizontal)
                 
-                Button("感知能量并起卦") {
+                Button("开始心理投射测试") {
                     performOracle()
                 }
                 .font(.headline)
@@ -469,6 +548,9 @@ struct OracleResultView: View {
 
 struct ProfileView: View {
     @Environment(\.modelContext) private var modelContext
+    @State private var showUserAgreement = false
+    @State private var showPrivacyPolicy = false
+    @State private var dailyUsageCount = UserDefaults.standard.integer(forKey: "dailyUsageCount")
     
     var body: some View {
         NavigationStack {
@@ -486,8 +568,20 @@ struct ProfileView: View {
                                 .foregroundColor(.secondary)
                         }
                         .padding(.leading)
+                        
+                        Spacer()
                     }
                     .padding(.vertical)
+                    
+                    // 今日使用次数
+                    HStack {
+                        Image(systemName: "chart.bar.fill")
+                            .foregroundColor(.purple)
+                        Text("今日已使用")
+                        Spacer()
+                        Text("\(dailyUsageCount)/3 次")
+                            .foregroundColor(.secondary)
+                    }
                 }
                 
                 Section("功能") {
@@ -497,16 +591,56 @@ struct ProfileView: View {
                         Label("历史记录", systemImage: "clock.fill")
                     }
                     
-                    Label("使用说明", systemImage: "book.fill")
+                    Button {
+                        // TODO: 使用说明
+                    } label: {
+                        Label("使用说明", systemImage: "book.fill")
+                            .foregroundColor(.primary)
+                    }
+                }
+                
+                Section("法律与隐私") {
+                    Button {
+                        showUserAgreement = true
+                    } label: {
+                        Label("用户协议", systemImage: "doc.text")
+                            .foregroundColor(.primary)
+                    }
+                    
+                    Button {
+                        showPrivacyPolicy = true
+                    } label: {
+                        Label("隐私政策", systemImage: "lock.shield")
+                            .foregroundColor(.primary)
+                    }
                 }
                 
                 Section("关于") {
-                    Label("用户协议", systemImage: "doc.text")
-                    Label("隐私政策", systemImage: "lock.shield")
-                    Label("关于我们", systemImage: "info.circle")
+                    HStack {
+                        Text("版本")
+                        Spacer()
+                        Text("1.0.0")
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    Button {
+                        // TODO: 关于我们
+                    } label: {
+                        Label("关于我们", systemImage: "info.circle")
+                            .foregroundColor(.primary)
+                    }
                 }
             }
             .navigationTitle("我的")
+            .sheet(isPresented: $showUserAgreement) {
+                UserAgreementView()
+            }
+            .sheet(isPresented: $showPrivacyPolicy) {
+                PrivacyPolicyView()
+            }
+            .onAppear {
+                dailyUsageCount = UserDefaults.standard.integer(forKey: "dailyUsageCount")
+            }
         }
     }
 }

@@ -23,19 +23,11 @@ struct HistoryView: View {
             Group {
                 if historyManager.histories.isEmpty {
                     // 空状态
-                    VStack(spacing: 20) {
-                        Image(systemName: "clock.arrow.circlepath")
-                            .font(.system(size: 60))
-                            .foregroundColor(.gray)
-                        
-                        Text("还没有分析记录")
-                            .font(.headline)
-                            .foregroundColor(.gray)
-                        
-                        Text("上传聊天截图开始你的第一次分析吧")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
+                    EmptyStateView(
+                        icon: "clock.arrow.circlepath",
+                        title: "暂无历史记录",
+                        message: "上传聊天截图，开始你的第一次分析"
+                    )
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     // 历史记录列表

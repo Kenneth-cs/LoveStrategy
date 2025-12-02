@@ -76,6 +76,13 @@ struct ReplyAssistantView: View {
                     .disabled(inputMessage.isEmpty || service.isAnalyzing)
                     .padding(.horizontal)
                     
+                    // 加载状态
+                    if service.isAnalyzing {
+                        ReplyLoadingView()
+                            .padding(.horizontal)
+                            .transition(.opacity)
+                    }
+                    
                     // 回复选项
                     if let options = replyOptions {
                         VStack(spacing: 20) {
