@@ -134,8 +134,6 @@ class UsageLimitManager {
     /// 获取新手福利提示
     static func getNewUserWelcomeMessage() -> String {
         return """
-        🎉 新用户福利
-        
         恭喜你！作为新用户，你额外获得了 \(newUserBonus) 次免费分析机会！
         
         今日可用次数：\(getCurrentLimit()) 次
