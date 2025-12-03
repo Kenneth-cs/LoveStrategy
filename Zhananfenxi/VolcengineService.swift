@@ -17,12 +17,9 @@ class VolcengineService: ObservableObject {
     @Published var isAnalyzing = false
     @Published var error: VolcengineError?
     
-    // 🔒 安全的 API 中转地址（通过 Cloudflare Worker）
-    private let workerEndpoint = "https://love-strategy-api.zhangshaoocng.workers.dev"
-    
-    // 🔒 安全说明：
-    // API Key 和 Model ID 已从客户端移除，现在存储在 Cloudflare Worker 的环境变量中
-    // 这样即使 App 被反编译，也无法获取真实的 API Key
+    private let apiKey = "3d0e053d-0d42-4e32-9a15-4e865ffb7e4b"
+    private let endpoint = "https://ark.cn-beijing.volces.com/api/v3/chat/completions"
+    private let modelID = "doubao-seed-1-6-flash-250828"
     
     // MARK: - Public Methods
     
@@ -96,20 +93,19 @@ class VolcengineService: ObservableObject {
     // MARK: - Private Methods
     
     private func buildAnalysisRequest(base64Image: String) throws -> URLRequest {
-        guard let url = URL(string: workerEndpoint) else {
+        guard let url = URL(string: endpoint) else {
             throw VolcengineError.invalidURL
         }
         
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.addValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         
-        // 🔒 安全优化：不再在客户端暴露 Authorization Header 和 API Key
-        // Worker 会自动添加认证信息
-        
-        // 构建请求体（发送给 Worker 的简化格式）
+        // 构建请求体
         let requestBody: [String: Any] = [
-            "action": "analyze", // 标识这是分析请求
+            "model": modelID,
+            "max_completion_tokens": 4096,
             "messages": [
                 [
                     "role": "user",
@@ -135,16 +131,18 @@ class VolcengineService: ObservableObject {
     }
     
     private func buildReplyRequest(message: String) throws -> URLRequest {
-        guard let url = URL(string: workerEndpoint) else {
+        guard let url = URL(string: endpoint) else {
             throw VolcengineError.invalidURL
         }
         
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.addValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         
         let requestBody: [String: Any] = [
-            "action": "reply", // 标识这是回复生成请求
+            "model": modelID,
+            "max_completion_tokens": 2048,
             "messages": [
                 [
                     "role": "user",
@@ -159,16 +157,18 @@ class VolcengineService: ObservableObject {
     }
     
     private func buildOracleRequest(base64Image: String, question: String?) throws -> URLRequest {
-        guard let url = URL(string: workerEndpoint) else {
+        guard let url = URL(string: endpoint) else {
             throw VolcengineError.invalidURL
         }
         
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.addValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         
         let requestBody: [String: Any] = [
-            "action": "oracle", // 标识这是心理投射请求
+            "model": modelID,
+            "max_completion_tokens": 4096,
             "messages": [
                 [
                     "role": "user",
