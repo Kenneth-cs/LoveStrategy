@@ -449,22 +449,18 @@ class VolcengineService: ObservableObject {
               let content = message["content"] as? String else {
             
             print("❌ API 响应解析失败")
-            if let rawString = String(data: data, encoding: .utf8) {
-                print("原始响应: \(rawString)")
-            }
             throw VolcengineError.decodingError
         }
         
         print("✅ 收到 AI 回复响应")
-        print("AI 返回内容: \(content)")
         
         // 从 AI 返回的内容中提取 JSON
         let jsonContent = extractJSON(from: content)
-        print("提取的 JSON: \(jsonContent)")
         
         guard let jsonData = jsonContent.data(using: .utf8),
               let resultJSON = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any] else {
-            print("❌ 无法解析 AI 返回的 JSON，内容: \(jsonContent)")
+            print("❌ 无法解析 AI 返回的 JSON")
+            print("原始内容: \(content)")
             throw VolcengineError.decodingError
         }
         

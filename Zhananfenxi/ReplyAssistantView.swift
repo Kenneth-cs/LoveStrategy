@@ -14,7 +14,6 @@ struct ReplyAssistantView: View {
     @State private var showResult = false
     @State private var selectedStyle: ReplyStyle?
     @FocusState private var isInputFocused: Bool
-    @State private var errorMessage: String?
     @State private var showError = false
     
     var body: some View {
@@ -98,20 +97,27 @@ struct ReplyAssistantView: View {
                     }
                     
                     // 错误提示
-                    if showError, let errorMsg = errorMessage {
-                        VStack(spacing: 10) {
-                            HStack {
-                                Image(systemName: "exclamationmark.triangle.fill")
-                                    .foregroundColor(.orange)
-                                Text(errorMsg)
+                    if showError {
+                        HStack(spacing: 12) {
+                            Image(systemName: "exclamationmark.bubble.fill")
+                                .foregroundColor(AppTheme.accentPink)
+                                .font(.title3)
+                            
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("军师正在忙碌，请点击重试~")
+                                    .font(.subheadline)
+                                    .foregroundColor(.primary)
+                                
+                                Text("网络波动或军师响应异常")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
-                                    .multilineTextAlignment(.leading)
                             }
-                            .padding()
-                            .background(Color.orange.opacity(0.1))
-                            .cornerRadius(10)
+                            
+                            Spacer()
                         }
+                        .padding()
+                        .background(AppTheme.softPink.opacity(0.3))
+                        .cornerRadius(12)
                         .padding(.horizontal)
                         .transition(.move(edge: .top).combined(with: .opacity))
                     }
@@ -161,10 +167,13 @@ struct ReplyAssistantView: View {
         // 收起键盘
         isInputFocused = false
         
+        // 清除之前的错误状态
+        showError = false
+        
         Task {
             do {
                 print("🔄 开始生成回复，输入内容: \(inputMessage)")
-                // 调用 AI 生成回复
+                // 调用军师生成回复
                 let options = try await service.generateReplies(for: inputMessage)
                 print("✅ 生成回复成功")
                 print("高冷: \(options.coldReplies)")
@@ -174,7 +183,6 @@ struct ReplyAssistantView: View {
                 await MainActor.run {
                     withAnimation {
                         self.replyOptions = options
-                        self.errorMessage = nil
                         self.showError = false
                     }
                 }
@@ -183,29 +191,9 @@ struct ReplyAssistantView: View {
                 print("错误详情: \(error.localizedDescription)")
                 
                 await MainActor.run {
-                    // 根据不同错误类型给出友好提示
-                    let friendlyMessage: String
-                    if let volcError = error as? VolcengineError {
-                        switch volcError {
-                        case .decodingError:
-                            friendlyMessage = "军师似乎走神了~\n请换个方式问问试试 💭"
-                        case .invalidImage:
-                            friendlyMessage = "图片格式有问题\n请重新上传 📸"
-                        case .invalidURL:
-                            friendlyMessage = "网络连接异常\n请检查网络后重试 🌐"
-                        case .invalidResponse:
-                            friendlyMessage = "军师响应异常\n请稍后重试 🤖"
-                        case .httpError(let code):
-                            friendlyMessage = "服务器繁忙 (\(code))\n请稍后重试 ⏰"
-                        case .networkError:
-                            friendlyMessage = "网络不稳定\n请检查网络连接后重试 📡"
-                        }
-                    } else {
-                        friendlyMessage = "生成失败，请稍后重试 😢\n可以尝试换个问法~"
+                    withAnimation {
+                        self.showError = true
                     }
-                    
-                    errorMessage = friendlyMessage
-                    showError = true
                 }
             }
         }

@@ -267,28 +267,7 @@ struct HomeAnalysisView: View {
                 }
             } catch {
                 await MainActor.run {
-                    // 根据不同错误类型给出友好提示
-                    let friendlyMessage: String
-                    if let volcError = error as? VolcengineError {
-                        switch volcError {
-                        case .decodingError:
-                            friendlyMessage = "军师分析出了点小问题\n请重新上传截图试试 💭"
-                        case .invalidImage:
-                            friendlyMessage = "图片格式有问题\n请重新选择 📸"
-                        case .invalidURL:
-                            friendlyMessage = "网络连接异常\n请检查网络后重试 🌐"
-                        case .invalidResponse:
-                            friendlyMessage = "军师响应异常\n请稍后重试 🤖"
-                        case .httpError(let code):
-                            friendlyMessage = "服务器繁忙 (\(code))\n请稍后重试 ⏰"
-                        case .networkError:
-                            friendlyMessage = "网络不稳定\n请检查网络连接后重试 📡"
-                        }
-                    } else {
-                        friendlyMessage = "分析失败\n请稍后重试 😢"
-                    }
-                    
-                    self.errorMessage = friendlyMessage
+                    self.errorMessage = error.localizedDescription
                     self.showError = true
                 }
                 print("分析失败: \(error)")
@@ -424,8 +403,7 @@ struct MetaphysicsView: View {
     @State private var isCalculating = false
     @State private var showResult = false
     @State private var oracleResult: OracleResult?
-    @State private var errorMessage: String?
-    @State private var showError = false
+    @FocusState private var isInputFocused: Bool
     
     var body: some View {
         NavigationStack {
@@ -448,7 +426,7 @@ struct MetaphysicsView: View {
                 }
                 .padding(.top)
                 
-                Text("上传聊天记录，军师 将通过卦象隐喻进行心理投射分析")
+                Text("上传聊天记录，军师将通过卦象隐喻进行心理投射分析")
                     .font(.caption)
                     .foregroundColor(.gray)
                     .multilineTextAlignment(.center)
@@ -515,6 +493,7 @@ struct MetaphysicsView: View {
                 TextField("你想了解的问题 (选填)", text: $question)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .padding()
+                    .focused($isInputFocused)
                 
                 // 开始测试按钮
                 Button {
@@ -550,25 +529,6 @@ struct MetaphysicsView: View {
                     .transition(.opacity)
                 }
                 
-                // 错误提示
-                if showError, let errorMsg = errorMessage {
-                    VStack(spacing: 10) {
-                        HStack {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .foregroundColor(.orange)
-                            Text(errorMsg)
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                                .multilineTextAlignment(.leading)
-                        }
-                        .padding()
-                        .background(Color.orange.opacity(0.1))
-                        .cornerRadius(10)
-                    }
-                    .padding(.horizontal)
-                    .transition(.move(edge: .top).combined(with: .opacity))
-                }
-                
                 Spacer()
             }
             .sheet(isPresented: $showImagePicker) {
@@ -585,6 +545,9 @@ struct MetaphysicsView: View {
     private func performOracle() {
         guard let image = selectedImage else { return }
         
+        // 收起键盘
+        isInputFocused = false
+        
         isCalculating = true
         
         Task {
@@ -594,36 +557,10 @@ struct MetaphysicsView: View {
                     self.oracleResult = result
                     self.isCalculating = false
                     self.showResult = true
-                    self.errorMessage = nil
-                    self.showError = false
                 }
             } catch {
                 await MainActor.run {
                     self.isCalculating = false
-                    
-                    // 根据不同错误类型给出友好提示
-                    let friendlyMessage: String
-                    if let volcError = error as? VolcengineError {
-                        switch volcError {
-                        case .decodingError:
-                            friendlyMessage = "能量场感知失败\n请重新上传试试 🔮"
-                        case .invalidImage:
-                            friendlyMessage = "图片格式有问题\n请重新选择 📸"
-                        case .invalidURL:
-                            friendlyMessage = "网络连接异常\n请检查网络后重试 🌐"
-                        case .invalidResponse:
-                            friendlyMessage = "军师响应异常\n请稍后重试 🤖"
-                        case .httpError(let code):
-                            friendlyMessage = "服务器繁忙 (\(code))\n请稍后重试 ⏰"
-                        case .networkError:
-                            friendlyMessage = "网络不稳定\n请检查网络连接后重试 📡"
-                        }
-                    } else {
-                        friendlyMessage = "测试失败\n请稍后重试 😢"
-                    }
-                    
-                    self.errorMessage = friendlyMessage
-                    self.showError = true
                 }
                 print("起卦失败: \(error)")
             }
