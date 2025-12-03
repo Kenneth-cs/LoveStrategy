@@ -13,6 +13,9 @@ struct ReplyAssistantView: View {
     @State private var replyOptions: ReplyOptions?
     @State private var showResult = false
     @State private var selectedStyle: ReplyStyle?
+    @FocusState private var isInputFocused: Bool
+    @State private var errorMessage: String?
+    @State private var showError = false
     
     var body: some View {
         NavigationStack {
@@ -37,7 +40,7 @@ struct ReplyAssistantView: View {
                                 )
                         }
                         
-                        Text("输入对方的话，AI 帮你生成三种风格的回复")
+                        Text("输入对方的话，军师帮你生成三种风格的回复")
                             .font(.caption)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
@@ -58,6 +61,7 @@ struct ReplyAssistantView: View {
                                 RoundedRectangle(cornerRadius: 10)
                                     .stroke(Color.gray.opacity(0.3), lineWidth: 1)
                             )
+                            .focused($isInputFocused)
                         
                         if inputMessage.isEmpty {
                             Text("例如：在干嘛？")
@@ -73,7 +77,7 @@ struct ReplyAssistantView: View {
                             if service.isAnalyzing {
                                 ProgressView()
                                     .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                Text("AI 正在生成...")
+                                Text("军师正在生成...")
                             } else {
                                 Image(systemName: "sparkles")
                                 Text("生成回复话术")
@@ -83,6 +87,34 @@ struct ReplyAssistantView: View {
                     .buttonStyle(PrimaryButtonStyle(isDisabled: inputMessage.isEmpty || service.isAnalyzing))
                     .disabled(inputMessage.isEmpty || service.isAnalyzing)
                     .padding(.horizontal)
+                    
+                    // 加载提示
+                    if service.isAnalyzing {
+                        Text("预计需要 10-15 秒")
+                            .font(.caption2)
+                            .foregroundColor(.gray)
+                            .padding(.top, 10)
+                            .transition(.opacity)
+                    }
+                    
+                    // 错误提示
+                    if showError, let errorMsg = errorMessage {
+                        VStack(spacing: 10) {
+                            HStack {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundColor(.orange)
+                                Text(errorMsg)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .multilineTextAlignment(.leading)
+                            }
+                            .padding()
+                            .background(Color.orange.opacity(0.1))
+                            .cornerRadius(10)
+                        }
+                        .padding(.horizontal)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                    }
                     
                     // 回复选项
                     if let options = replyOptions {
@@ -126,6 +158,9 @@ struct ReplyAssistantView: View {
     }
     
     private func generateReplies() {
+        // 收起键盘
+        isInputFocused = false
+        
         Task {
             do {
                 print("🔄 开始生成回复，输入内容: \(inputMessage)")
@@ -139,11 +174,39 @@ struct ReplyAssistantView: View {
                 await MainActor.run {
                     withAnimation {
                         self.replyOptions = options
+                        self.errorMessage = nil
+                        self.showError = false
                     }
                 }
             } catch {
                 print("❌ 生成回复失败: \(error)")
                 print("错误详情: \(error.localizedDescription)")
+                
+                await MainActor.run {
+                    // 根据不同错误类型给出友好提示
+                    let friendlyMessage: String
+                    if let volcError = error as? VolcengineError {
+                        switch volcError {
+                        case .decodingError:
+                            friendlyMessage = "军师似乎走神了~\n请换个方式问问试试 💭"
+                        case .invalidImage:
+                            friendlyMessage = "图片格式有问题\n请重新上传 📸"
+                        case .invalidURL:
+                            friendlyMessage = "网络连接异常\n请检查网络后重试 🌐"
+                        case .invalidResponse:
+                            friendlyMessage = "军师响应异常\n请稍后重试 🤖"
+                        case .httpError(let code):
+                            friendlyMessage = "服务器繁忙 (\(code))\n请稍后重试 ⏰"
+                        case .networkError:
+                            friendlyMessage = "网络不稳定\n请检查网络连接后重试 📡"
+                        }
+                    } else {
+                        friendlyMessage = "生成失败，请稍后重试 😢\n可以尝试换个问法~"
+                    }
+                    
+                    errorMessage = friendlyMessage
+                    showError = true
+                }
             }
         }
     }

@@ -449,18 +449,23 @@ class VolcengineService: ObservableObject {
               let content = message["content"] as? String else {
             
             print("❌ API 响应解析失败")
+            if let rawString = String(data: data, encoding: .utf8) {
+                print("原始响应: \(rawString)")
+            }
             throw VolcengineError.decodingError
         }
         
         print("✅ 收到 AI 回复响应")
+        print("AI 返回内容: \(content)")
         
         // 从 AI 返回的内容中提取 JSON
         let jsonContent = extractJSON(from: content)
+        print("提取的 JSON: \(jsonContent)")
         
         guard let jsonData = jsonContent.data(using: .utf8),
               let resultJSON = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any] else {
-            print("❌ 无法解析 AI 返回的 JSON")
-            return createMockReplyOptions()
+            print("❌ 无法解析 AI 返回的 JSON，内容: \(jsonContent)")
+            throw VolcengineError.decodingError
         }
         
         return parseReplyJSON(resultJSON)
@@ -475,14 +480,6 @@ class VolcengineService: ObservableObject {
             coldReplies: coldReplies,
             sweetReplies: sweetReplies,
             dramaReplies: dramaReplies
-        )
-    }
-    
-    private func createMockReplyOptions() -> ReplyOptions {
-        return ReplyOptions(
-            coldReplies: ["忙。", "有事吗？", "在想要不要回你。"],
-            sweetReplies: ["在想你呀~", "刚洗完澡，头发还湿湿的呢", "在等你找我呀"],
-            dramaReplies: ["你是不是在查岗？", "我在干嘛关你什么事", "你就不能换个开场白吗"]
         )
     }
     

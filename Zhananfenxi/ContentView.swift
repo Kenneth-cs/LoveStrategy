@@ -40,7 +40,7 @@ struct MainTabView: View {
             
             MetaphysicsView()
                 .tabItem {
-                    Label("心理投射", systemImage: "star.circle.fill")
+                    Label("截图起卦", systemImage: "star.circle.fill")
                 }
             
             ProfileView()
@@ -79,7 +79,7 @@ struct HomeAnalysisView: View {
                             VStack(alignment: .leading) {
                                 Text("上传聊天记录")
                                     .font(.title2).bold()
-                                Text("AI 帮你识别潜台词，以此'鉴'人")
+                                Text("军师帮你识别潜台词，以此'鉴'人")
                                     .font(.subheadline)
                                     .foregroundColor(.gray)
                             }
@@ -161,7 +161,7 @@ struct HomeAnalysisView: View {
                             if service.isAnalyzing {
                                 ProgressView()
                                     .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                Text("AI 正在分析中...")
+                                Text("军师正在分析中...")
                             } else {
                                 Image(systemName: "sparkles")
                                 Text("开始深度分析")
@@ -171,6 +171,15 @@ struct HomeAnalysisView: View {
                     .buttonStyle(PrimaryButtonStyle(isDisabled: selectedImage == nil || service.isAnalyzing))
                     .disabled(selectedImage == nil || service.isAnalyzing)
                     .padding(.horizontal)
+                    
+                    // 加载提示
+                    if service.isAnalyzing {
+                        Text("预计需要 10-15 秒")
+                            .font(.caption2)
+                            .foregroundColor(.gray)
+                            .padding(.top, 10)
+                            .transition(.opacity)
+                    }
                     
                     // Result Area
                     if let result = analysisResult {
@@ -258,7 +267,28 @@ struct HomeAnalysisView: View {
                 }
             } catch {
                 await MainActor.run {
-                    self.errorMessage = error.localizedDescription
+                    // 根据不同错误类型给出友好提示
+                    let friendlyMessage: String
+                    if let volcError = error as? VolcengineError {
+                        switch volcError {
+                        case .decodingError:
+                            friendlyMessage = "军师分析出了点小问题\n请重新上传截图试试 💭"
+                        case .invalidImage:
+                            friendlyMessage = "图片格式有问题\n请重新选择 📸"
+                        case .invalidURL:
+                            friendlyMessage = "网络连接异常\n请检查网络后重试 🌐"
+                        case .invalidResponse:
+                            friendlyMessage = "军师响应异常\n请稍后重试 🤖"
+                        case .httpError(let code):
+                            friendlyMessage = "服务器繁忙 (\(code))\n请稍后重试 ⏰"
+                        case .networkError:
+                            friendlyMessage = "网络不稳定\n请检查网络连接后重试 📡"
+                        }
+                    } else {
+                        friendlyMessage = "分析失败\n请稍后重试 😢"
+                    }
+                    
+                    self.errorMessage = friendlyMessage
                     self.showError = true
                 }
                 print("分析失败: \(error)")
@@ -394,6 +424,8 @@ struct MetaphysicsView: View {
     @State private var isCalculating = false
     @State private var showResult = false
     @State private var oracleResult: OracleResult?
+    @State private var errorMessage: String?
+    @State private var showError = false
     
     var body: some View {
         NavigationStack {
@@ -403,7 +435,7 @@ struct MetaphysicsView: View {
                         .font(.title2)
                         .foregroundStyle(AppTheme.iconGradient)
                     
-                    Text("心理投射测试")
+                    Text("截图起卦")
                         .font(.title2)
                         .bold()
                         .foregroundStyle(
@@ -416,7 +448,7 @@ struct MetaphysicsView: View {
                 }
                 .padding(.top)
                 
-                Text("上传聊天记录，AI 将通过卦象隐喻进行心理投射分析")
+                Text("上传聊天记录，军师 将通过卦象隐喻进行心理投射分析")
                     .font(.caption)
                     .foregroundColor(.gray)
                     .multilineTextAlignment(.center)
@@ -492,10 +524,10 @@ struct MetaphysicsView: View {
                         if isCalculating {
                             ProgressView()
                                 .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                            Text("AI 正在感知能量场...")
+                            Text("军师正在感知能量场...")
                         } else {
                             Image(systemName: "sparkles")
-                            Text("开始心理投射测试")
+                            Text("开始起卦")
                         }
                     }
                 }
@@ -516,6 +548,25 @@ struct MetaphysicsView: View {
                     }
                     .padding(.top, 10)
                     .transition(.opacity)
+                }
+                
+                // 错误提示
+                if showError, let errorMsg = errorMessage {
+                    VStack(spacing: 10) {
+                        HStack {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundColor(.orange)
+                            Text(errorMsg)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.leading)
+                        }
+                        .padding()
+                        .background(Color.orange.opacity(0.1))
+                        .cornerRadius(10)
+                    }
+                    .padding(.horizontal)
+                    .transition(.move(edge: .top).combined(with: .opacity))
                 }
                 
                 Spacer()
@@ -543,10 +594,36 @@ struct MetaphysicsView: View {
                     self.oracleResult = result
                     self.isCalculating = false
                     self.showResult = true
+                    self.errorMessage = nil
+                    self.showError = false
                 }
             } catch {
                 await MainActor.run {
                     self.isCalculating = false
+                    
+                    // 根据不同错误类型给出友好提示
+                    let friendlyMessage: String
+                    if let volcError = error as? VolcengineError {
+                        switch volcError {
+                        case .decodingError:
+                            friendlyMessage = "能量场感知失败\n请重新上传试试 🔮"
+                        case .invalidImage:
+                            friendlyMessage = "图片格式有问题\n请重新选择 📸"
+                        case .invalidURL:
+                            friendlyMessage = "网络连接异常\n请检查网络后重试 🌐"
+                        case .invalidResponse:
+                            friendlyMessage = "军师响应异常\n请稍后重试 🤖"
+                        case .httpError(let code):
+                            friendlyMessage = "服务器繁忙 (\(code))\n请稍后重试 ⏰"
+                        case .networkError:
+                            friendlyMessage = "网络不稳定\n请检查网络连接后重试 📡"
+                        }
+                    } else {
+                        friendlyMessage = "测试失败\n请稍后重试 😢"
+                    }
+                    
+                    self.errorMessage = friendlyMessage
+                    self.showError = true
                 }
                 print("起卦失败: \(error)")
             }
