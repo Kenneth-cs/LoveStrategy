@@ -9,12 +9,14 @@ import SwiftUI
 
 struct ReplyAssistantView: View {
     @StateObject private var service = VolcengineService()
+    @StateObject private var coinManager = PeachBlossomManager.shared
     @State private var inputMessage: String = ""
     @State private var replyOptions: ReplyOptions?
     @State private var showResult = false
     @State private var selectedStyle: ReplyStyle?
     @FocusState private var isInputFocused: Bool
     @State private var showError = false
+    @State private var showRechargeAlert = false
     
     var body: some View {
         NavigationStack {
@@ -161,9 +163,24 @@ struct ReplyAssistantView: View {
             }
             .navigationBarTitleDisplayMode(.inline)
         }
+        .sheet(isPresented: $showRechargeAlert) {
+            RechargeAlertView(
+                coinManager: coinManager,
+                requiredAmount: 3,
+                featureName: "高情商回复助手"
+            )
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.visible)
+        }
     }
     
     private func generateReplies() {
+        // 检查桃花签余额（需要3签）
+        guard coinManager.checkBalance(required: 3) else {
+            showRechargeAlert = true
+            return
+        }
+        
         // 收起键盘
         isInputFocused = false
         
@@ -184,6 +201,9 @@ struct ReplyAssistantView: View {
                     withAnimation {
                         self.replyOptions = options
                         self.showError = false
+                        
+                        // 生成成功后才扣费
+                        try? coinManager.deductCoins(3, reason: "高情商回复生成")
                     }
                 }
             } catch {

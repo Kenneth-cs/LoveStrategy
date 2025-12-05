@@ -36,19 +36,21 @@ struct CoinBalanceView: View {
     
     private var compactView: some View {
         HStack(spacing: 4) {
-            Text("🌸")
-                .font(.body)
+            Image("peach_blossom_coin")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 20, height: 20)
             
             Text("\(coinManager.balance)")
                 .font(.body)
                 .fontWeight(.semibold)
-                .foregroundColor(Theme.textDark)
+                .foregroundColor(AppTheme.textDark)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
         .background(
             Capsule()
-                .fill(Theme.softPink.opacity(0.3))
+                .fill(AppTheme.softPink.opacity(0.3))
         )
         .onTapGesture {
             onTap?()
@@ -59,8 +61,10 @@ struct CoinBalanceView: View {
     
     private var normalView: some View {
         HStack(spacing: 6) {
-            Text("🌸")
-                .font(.title3)
+            Image("peach_blossom_coin")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 28, height: 28)
             
             VStack(alignment: .leading, spacing: 0) {
                 Text("桃花签")
@@ -70,13 +74,13 @@ struct CoinBalanceView: View {
                 Text("\(coinManager.balance)")
                     .font(.headline)
                     .fontWeight(.bold)
-                    .foregroundColor(Theme.primaryPink)
+                    .foregroundColor(AppTheme.accentPink)
             }
             
             if onTap != nil {
                 Image(systemName: "plus.circle.fill")
                     .font(.caption)
-                    .foregroundColor(Theme.primaryPink)
+                    .foregroundColor(AppTheme.accentPink)
             }
         }
         .padding(.horizontal, 12)
@@ -85,7 +89,7 @@ struct CoinBalanceView: View {
             RoundedRectangle(cornerRadius: 12)
                 .fill(
                     LinearGradient(
-                        colors: [Theme.softPink.opacity(0.3), Theme.softPink.opacity(0.2)],
+                        colors: [AppTheme.softPink.opacity(0.3), AppTheme.softPink.opacity(0.2)],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
@@ -93,7 +97,7 @@ struct CoinBalanceView: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(Theme.primaryPink.opacity(0.3), lineWidth: 1)
+                .stroke(AppTheme.accentPink.opacity(0.3), lineWidth: 1)
         )
         .onTapGesture {
             onTap?()
@@ -104,8 +108,10 @@ struct CoinBalanceView: View {
     
     private var largeView: some View {
         VStack(spacing: 12) {
-            Text("🌸")
-                .font(.system(size: 60))
+            Image("peach_blossom_coin")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 80, height: 80)
             
             VStack(spacing: 4) {
                 Text("当前余额")
@@ -115,7 +121,7 @@ struct CoinBalanceView: View {
                 HStack(alignment: .firstTextBaseline, spacing: 4) {
                     Text("\(coinManager.balance)")
                         .font(.system(size: 42, weight: .bold, design: .rounded))
-                        .foregroundColor(Theme.primaryPink)
+                        .foregroundColor(AppTheme.accentPink)
                     
                     Text("签")
                         .font(.title2)
@@ -132,7 +138,7 @@ struct CoinBalanceView: View {
             RoundedRectangle(cornerRadius: 20)
                 .fill(
                     LinearGradient(
-                        colors: [Theme.softPink.opacity(0.2), Theme.softPink.opacity(0.1)],
+                        colors: [AppTheme.softPink.opacity(0.2), AppTheme.softPink.opacity(0.1)],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
@@ -140,7 +146,7 @@ struct CoinBalanceView: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: 20)
-                .stroke(Theme.primaryPink.opacity(0.3), lineWidth: 1.5)
+                .stroke(AppTheme.accentPink.opacity(0.3), lineWidth: 1.5)
         )
     }
     

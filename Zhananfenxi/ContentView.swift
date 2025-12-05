@@ -59,6 +59,7 @@ struct MainTabView: View {
 struct HomeAnalysisView: View {
     @Environment(\.modelContext) private var modelContext
     @StateObject var service = VolcengineService()
+    @StateObject private var coinManager = PeachBlossomManager.shared
     @State private var showImagePicker = false
     @State private var selectedImage: UIImage?
     @State private var showResult = false
@@ -68,6 +69,7 @@ struct HomeAnalysisView: View {
     @State private var showLimitAlert = false
     @State private var limitMessage = ""
     @State private var showNewUserWelcome = false
+    @State private var showRechargeAlert = false
     
     var body: some View {
         NavigationStack {
@@ -86,20 +88,10 @@ struct HomeAnalysisView: View {
                             
                             Spacer()
                             
-                            // 剩余次数显示
-                            VStack(spacing: 2) {
-                                Text("\(UsageLimitManager.getRemainingCount())")
-                                    .font(.system(size: 24, weight: .bold))
-                                    .foregroundColor(UsageLimitManager.getRemainingCount() > 0 ? AppTheme.accentPink : .red)
-                                Text("剩余次数")
-                                    .font(.caption2)
-                                    .foregroundColor(.secondary)
-                            }
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(AppTheme.softPink)
+                            // 桃花签余额显示
+                            CoinBalanceView(
+                                coinManager: coinManager,
+                                style: .normal
                             )
                         }
                     }
@@ -231,6 +223,15 @@ struct HomeAnalysisView: View {
             } message: {
                 Text(UsageLimitManager.getNewUserWelcomeMessage())
             }
+            .sheet(isPresented: $showRechargeAlert) {
+                RechargeAlertView(
+                    coinManager: coinManager,
+                    requiredAmount: 8,
+                    featureName: "鉴渣雷达"
+                )
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
+            }
             .onAppear {
                 // 检查是否显示新手福利
                 if UsageLimitManager.isNewUser() && !UsageLimitManager.hasReceivedBonus() {
@@ -244,10 +245,9 @@ struct HomeAnalysisView: View {
     private func analyzeImage() {
         guard let image = selectedImage else { return }
         
-        // 检查使用次数限制
-        if !UsageLimitManager.canUseFeature() {
-            limitMessage = UsageLimitManager.getLimitReachedMessage()
-            showLimitAlert = true
+        // 检查桃花签余额（需要8签）
+        guard coinManager.checkBalance(required: 8) else {
+            showRechargeAlert = true
             return
         }
         
@@ -257,8 +257,8 @@ struct HomeAnalysisView: View {
                 await MainActor.run {
                     self.analysisResult = result
                     
-                    // 增加使用次数
-                    UsageLimitManager.incrementUsage()
+                    // 分析成功后才扣费
+                    try? coinManager.deductCoins(8, reason: "鉴渣雷达分析")
                     
                     // 保存到历史记录
                     let imageData = image.jpegData(compressionQuality: 0.7)
@@ -397,6 +397,7 @@ struct ResultCardView: View {
 
 struct MetaphysicsView: View {
     @StateObject var service = VolcengineService()
+    @StateObject private var coinManager = PeachBlossomManager.shared
     @State private var selectedImage: UIImage?
     @State private var question: String = ""
     @State private var showImagePicker = false
@@ -404,6 +405,7 @@ struct MetaphysicsView: View {
     @State private var showResult = false
     @State private var oracleResult: OracleResult?
     @FocusState private var isInputFocused: Bool
+    @State private var showRechargeAlert = false
     
     var body: some View {
         NavigationStack {
@@ -539,11 +541,26 @@ struct MetaphysicsView: View {
                     OracleResultView(result: result)
                 }
             }
+            .sheet(isPresented: $showRechargeAlert) {
+                RechargeAlertView(
+                    coinManager: coinManager,
+                    requiredAmount: 8,
+                    featureName: "截图起卦"
+                )
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
+            }
         }
     }
     
     private func performOracle() {
         guard let image = selectedImage else { return }
+        
+        // 检查桃花签余额（需要8签）
+        guard coinManager.checkBalance(required: 8) else {
+            showRechargeAlert = true
+            return
+        }
         
         // 收起键盘
         isInputFocused = false
@@ -557,6 +574,9 @@ struct MetaphysicsView: View {
                     self.oracleResult = result
                     self.isCalculating = false
                     self.showResult = true
+                    
+                    // 起卦成功后才扣费
+                    try? coinManager.deductCoins(8, reason: "截图起卦")
                 }
             } catch {
                 await MainActor.run {
@@ -644,9 +664,11 @@ struct OracleResultView: View {
 
 struct ProfileView: View {
     @Environment(\.modelContext) private var modelContext
+    @StateObject private var coinManager = PeachBlossomManager.shared
     @State private var showUserAgreement = false
     @State private var showPrivacyPolicy = false
     @State private var showUserGuide = false
+    @State private var showRechargeView = false
     @State private var dailyUsageCount = UserDefaults.standard.integer(forKey: "dailyUsageCount")
     
     var body: some View {
@@ -683,18 +705,42 @@ struct ProfileView: View {
                     }
                     .padding(.vertical)
                     
-                    // 今日使用次数
-                    HStack {
-                        Image(systemName: "chart.bar.fill")
-                            .foregroundColor(AppTheme.accentPink)
-                        Text("今日已使用")
-                        Spacer()
-                        Text("\(dailyUsageCount)/3 次")
-                            .foregroundColor(.secondary)
+                    // 桃花签余额
+                    Button {
+                        showRechargeView = true
+                    } label: {
+                        HStack {
+                            Image("peach_blossom_coin")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 24, height: 24)
+                            Text("桃花签余额")
+                            Spacer()
+                            Text("\(coinManager.balance) 签")
+                                .foregroundColor(AppTheme.accentPink)
+                                .fontWeight(.semibold)
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
                     }
+                    .buttonStyle(PlainButtonStyle())
                 }
                 
                 Section("功能") {
+                    Button {
+                        showRechargeView = true
+                    } label: {
+                        HStack {
+                            Label("充值桃花签", systemImage: "plus.circle.fill")
+                                .foregroundColor(AppTheme.accentPink)
+                            Spacer()
+                            Text("获取更多")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    
                     NavigationLink {
                         HistoryView(modelContext: modelContext)
                     } label: {
@@ -744,6 +790,9 @@ struct ProfileView: View {
             }
             .sheet(isPresented: $showUserGuide) {
                 UserGuideView()
+            }
+            .sheet(isPresented: $showRechargeView) {
+                RechargeView(coinManager: coinManager)
             }
             .onAppear {
                 dailyUsageCount = UserDefaults.standard.integer(forKey: "dailyUsageCount")

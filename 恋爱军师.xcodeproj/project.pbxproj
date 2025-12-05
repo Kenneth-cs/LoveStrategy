@@ -27,6 +27,7 @@
 		5CCEAB922EDD765800EFE671 /* 恋爱军师.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "恋爱军师.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		5CCEABA22EDD765A00EFE671 /* 恋爱军师Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "恋爱军师Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		5CCEABAC2EDD765A00EFE671 /* 恋爱军师UITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "恋爱军师UITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		5CCEADDE2EE28F5C00EFE671 /* 恋爱军师.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "恋爱军师.entitlements"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -75,6 +76,7 @@
 		5CCEAB892EDD765800EFE671 = {
 			isa = PBXGroup;
 			children = (
+				5CCEADDE2EE28F5C00EFE671 /* 恋爱军师.entitlements */,
 				5CCEAB942EDD765800EFE671 /* Zhananfenxi */,
 				5CCEABA52EDD765A00EFE671 /* ZhananfenxiTests */,
 				5CCEABAF2EDD765A00EFE671 /* ZhananfenxiUITests */,
@@ -393,6 +395,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "恋爱军师.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"Zhananfenxi/Preview Content\"";
@@ -423,6 +426,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "恋爱军师.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"Zhananfenxi/Preview Content\"";

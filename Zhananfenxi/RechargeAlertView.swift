@@ -14,6 +14,8 @@ struct RechargeAlertView: View {
     let requiredAmount: Int
     let featureName: String
     
+    @State private var showRechargeView = false
+    
     var body: some View {
         VStack(spacing: 0) {
             // 关闭按钮
@@ -36,15 +38,17 @@ struct RechargeAlertView: View {
                     Circle()
                         .fill(
                             LinearGradient(
-                                colors: [Theme.softPink, Theme.primaryPink],
+                                colors: [AppTheme.softPink, AppTheme.accentPink],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
                         )
                         .frame(width: 80, height: 80)
                     
-                    Text("🌸")
-                        .font(.system(size: 45))
+                    Image("peach_blossom_coin")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 50, height: 50)
                 }
                 .padding(.top, 10)
                 
@@ -52,7 +56,7 @@ struct RechargeAlertView: View {
                 Text("桃花签不足啦！")
                     .font(.title2)
                     .fontWeight(.bold)
-                    .foregroundColor(Theme.textDark)
+                    .foregroundColor(AppTheme.textDark)
                 
                 // 描述
                 VStack(spacing: 8) {
@@ -65,11 +69,11 @@ struct RechargeAlertView: View {
                         Text("使用")
                         Text(featureName)
                             .fontWeight(.semibold)
-                            .foregroundColor(Theme.primaryPink)
+                            .foregroundColor(AppTheme.accentPink)
                         Text("需要")
                         Text("\(requiredAmount)签")
                             .fontWeight(.bold)
-                            .foregroundColor(Theme.primaryPink)
+                            .foregroundColor(AppTheme.accentPink)
                     }
                     .font(.body)
                     
@@ -88,9 +92,10 @@ struct RechargeAlertView: View {
                 VStack(spacing: 12) {
                     // 充值按钮
                     Button {
-                        // TODO: 打开充值页面
                         dismiss()
-                        // showRechargeView = true
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                            showRechargeView = true
+                        }
                     } label: {
                         HStack {
                             Image(systemName: "plus.circle.fill")
@@ -105,7 +110,7 @@ struct RechargeAlertView: View {
                         .frame(height: 50)
                         .background(
                             LinearGradient(
-                                colors: [Theme.primaryPink, Theme.accentPink],
+                                colors: [AppTheme.accentPink, AppTheme.darkPink],
                                 startPoint: .leading,
                                 endPoint: .trailing
                             )
@@ -137,6 +142,9 @@ struct RechargeAlertView: View {
         .background(Color(.systemBackground))
         .cornerRadius(20)
         .shadow(color: .black.opacity(0.2), radius: 20)
+        .sheet(isPresented: $showRechargeView) {
+            RechargeView(coinManager: coinManager)
+        }
     }
 }
 
