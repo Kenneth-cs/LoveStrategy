@@ -100,7 +100,7 @@ struct RechargeAlertView: View {
                         HStack {
                             Image(systemName: "plus.circle.fill")
                             Text("立即充值")
-                            Text("(仅需 ¥6)")
+                            Text("(仅需 ¥5.8)")
                                 .font(.caption)
                                 .foregroundColor(.white.opacity(0.8))
                         }
@@ -131,7 +131,7 @@ struct RechargeAlertView: View {
                 .padding(.top, 10)
                 
                 // 底部提示
-                Text("💡 仅需一杯咖啡钱，即可获得60签")
+                Text("💡 仅需 ¥5.8 即可获得60签，相当于一杯咖啡钱")
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .padding(.top, 10)

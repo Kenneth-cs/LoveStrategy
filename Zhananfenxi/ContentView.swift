@@ -665,10 +665,13 @@ struct OracleResultView: View {
 struct ProfileView: View {
     @Environment(\.modelContext) private var modelContext
     @StateObject private var coinManager = PeachBlossomManager.shared
+    @StateObject private var devSettings = DeveloperSettings.shared
     @State private var showUserAgreement = false
     @State private var showPrivacyPolicy = false
     @State private var showUserGuide = false
     @State private var showRechargeView = false
+    @State private var showDeveloperSettings = false
+    @State private var versionTapCount = 0
     @State private var dailyUsageCount = UserDefaults.standard.integer(forKey: "dailyUsageCount")
     
     var body: some View {
@@ -773,11 +776,32 @@ struct ProfileView: View {
                 }
                 
                 Section("关于") {
-                    HStack {
-                        Text("版本")
-                        Spacer()
-                        Text("1.0.0")
-                            .foregroundColor(.secondary)
+                    Button {
+                        versionTapCount += 1
+                        if versionTapCount >= 5 {
+                            devSettings.showDeveloperMenu = true
+                            showDeveloperSettings = true
+                            versionTapCount = 0
+                        }
+                    } label: {
+                        HStack {
+                            Text("版本")
+                                .foregroundColor(.primary)
+                            Spacer()
+                            Text("1.0.0")
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    
+                    // 开发者设置入口（点击版本号5次后显示）
+                    if devSettings.showDeveloperMenu {
+                        Button {
+                            showDeveloperSettings = true
+                        } label: {
+                            Label("开发者设置", systemImage: "hammer.fill")
+                                .foregroundColor(.orange)
+                        }
                     }
                 }
             }
@@ -793,6 +817,9 @@ struct ProfileView: View {
             }
             .sheet(isPresented: $showRechargeView) {
                 RechargeView(coinManager: coinManager)
+            }
+            .sheet(isPresented: $showDeveloperSettings) {
+                DeveloperSettingsView(coinManager: coinManager)
             }
             .onAppear {
                 dailyUsageCount = UserDefaults.standard.integer(forKey: "dailyUsageCount")

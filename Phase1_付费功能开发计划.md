@@ -51,9 +51,9 @@
 #### Day 8-9: 充值界面 UI
 - [ ] 创建 `RechargeView.swift`
 - [ ] 3档价格卡片设计
-  - [ ] 尝鲜包 ¥6 / 60签
-  - [ ] 超值包 ¥18 / 200签（推荐标签）
-  - [ ] 尊享包 ¥68 / 800签
+  - [ ] 尝鲜包 ¥5.8 / 60签
+  - [ ] 超值包 ¥17.8 / 200签（推荐标签）
+  - [ ] 尊享包 ¥67.8 / 800签
 - [ ] 桃花签图标展示
 - [ ] 底部提示文案
 
@@ -65,9 +65,9 @@
 
 #### Day 12: App Store Connect 配置
 - [ ] 创建3个内购产品
-  - [ ] `com.lovestrategy.coins.tier1` - ¥6
-  - [ ] `com.lovestrategy.coins.tier2` - ¥18
-  - [ ] `com.lovestrategy.coins.tier3` - ¥68
+  - [ ] `com.lovestrategy.coins.tier1` - ¥5.8
+  - [ ] `com.lovestrategy.coins.tier2` - ¥17.8
+  - [ ] `com.lovestrategy.coins.tier3` - ¥67.8
 - [ ] 上传产品截图
 - [ ] 填写产品描述
 

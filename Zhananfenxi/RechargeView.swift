@@ -10,9 +10,12 @@ import SwiftUI
 struct RechargeView: View {
     @Environment(\.dismiss) var dismiss
     @ObservedObject var coinManager: PeachBlossomManager
+    @StateObject private var iapManager = IAPManager.shared
+    @StateObject private var devSettings = DeveloperSettings.shared
     @State private var selectedTier: RechargeTier?
-    @State private var isPurchasing = false
     @State private var showSuccessAlert = false
+    @State private var showErrorAlert = false
+    @State private var errorMessage = ""
     
     var body: some View {
         NavigationStack {
@@ -41,34 +44,40 @@ struct RechargeView: View {
                         RechargeTierCard(
                             tier: .starter,
                             isSelected: selectedTier == .starter,
-                            isPurchasing: isPurchasing
+                            isPurchasing: iapManager.isPurchasing
                         ) {
                             selectedTier = .starter
                         } onPurchase: {
-                            purchase(.starter)
+                            Task {
+                                await purchase(.starter)
+                            }
                         }
                         
                         // 超值包（推荐）
                         RechargeTierCard(
                             tier: .value,
                             isSelected: selectedTier == .value,
-                            isPurchasing: isPurchasing,
+                            isPurchasing: iapManager.isPurchasing,
                             isRecommended: true
                         ) {
                             selectedTier = .value
                         } onPurchase: {
-                            purchase(.value)
+                            Task {
+                                await purchase(.value)
+                            }
                         }
                         
                         // 尊享包
                         RechargeTierCard(
                             tier: .premium,
                             isSelected: selectedTier == .premium,
-                            isPurchasing: isPurchasing
+                            isPurchasing: iapManager.isPurchasing
                         ) {
                             selectedTier = .premium
                         } onPurchase: {
-                            purchase(.premium)
+                            Task {
+                                await purchase(.premium)
+                            }
                         }
                     }
                     .padding(.horizontal)
@@ -113,23 +122,72 @@ struct RechargeView: View {
         } message: {
             Text("桃花签已到账，快去使用吧！")
         }
+        .alert("购买失败", isPresented: $showErrorAlert) {
+            Button("确定", role: .cancel) {}
+        } message: {
+            Text(errorMessage)
+        }
+        .onAppear {
+            // 加载商品列表
+            Task {
+                await iapManager.loadProducts()
+            }
+        }
     }
     
     // MARK: - Purchase Action
     
-    private func purchase(_ tier: RechargeTier) {
-        isPurchasing = true
+    private func purchase(_ tier: RechargeTier) async {
+        // 根据开发者设置选择模拟或真实购买
+        if devSettings.useSimulatedPurchase {
+            // 模拟购买（用于测试）
+            await simulatedPurchase(tier)
+        } else {
+            // 真实购买（StoreKit 2）
+            await realPurchase(tier)
+        }
+    }
+    
+    /// 模拟购买（用于测试）
+    private func simulatedPurchase(_ tier: RechargeTier) async {
+        try? await Task.sleep(nanoseconds: 1_500_000_000) // 1.5秒
         
-        // 模拟购买流程（暂时）
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+        await MainActor.run {
             // 添加对应的桃花签
             coinManager.addCoins(tier.coins, source: tier.name)
-            
-            isPurchasing = false
             showSuccessAlert = true
         }
+    }
+    
+    /// 真实购买（StoreKit 2）
+    private func realPurchase(_ tier: RechargeTier) async {
+        // 查找对应的商品
+        guard let product = iapManager.getProduct(by: tier.rawValue) else {
+            await MainActor.run {
+                errorMessage = "商品未找到，请稍后重试"
+                showErrorAlert = true
+            }
+            return
+        }
         
-        // TODO: 接入真实的 StoreKit 2 购买流程
+        do {
+            // 发起购买
+            let success = try await iapManager.purchase(product, coinManager: coinManager)
+            
+            if success {
+                await MainActor.run {
+                    showSuccessAlert = true
+                }
+            }
+        } catch IAPError.cancelled {
+            // 用户取消，不显示错误
+            print("用户取消购买")
+        } catch {
+            await MainActor.run {
+                errorMessage = error.localizedDescription
+                showErrorAlert = true
+            }
+        }
     }
 }
 
@@ -152,9 +210,9 @@ enum RechargeTier: String, CaseIterable, Identifiable {
     
     var price: String {
         switch self {
-        case .starter: return "¥6"
-        case .value: return "¥18"
-        case .premium: return "¥68"
+        case .starter: return "¥5.8"
+        case .value: return "¥17.8"
+        case .premium: return "¥67.8"
         }
     }
     
