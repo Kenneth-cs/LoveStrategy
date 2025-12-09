@@ -233,14 +233,16 @@ struct HomeAnalysisView: View {
                 }
             }
         } label: {
-            HStack {
+            HStack(spacing: 6) {
                 Image(systemName: "photo")
                 Text("单图分析")
                 Text("8签")
-                    .font(.caption2)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Capsule().fill(Color.white.opacity(0.3)))
+                    .font(.system(size: 10))
+                    .fontWeight(.light)
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 1)
+                    .background(Capsule().fill(Color.white.opacity(0.2)))
+                    .opacity(0.7)
             }
             .font(.subheadline)
             .fontWeight(isMultiImageMode ? .regular : .semibold)
@@ -260,14 +262,16 @@ struct HomeAnalysisView: View {
                 isMultiImageMode = true
             }
         } label: {
-            HStack {
+            HStack(spacing: 6) {
                 Image(systemName: "photo.stack")
                 Text("多图分析")
                 Text("18签")
-                    .font(.caption2)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Capsule().fill(Color.white.opacity(0.3)))
+                    .font(.system(size: 10))
+                    .fontWeight(.light)
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 1)
+                    .background(Capsule().fill(Color.white.opacity(0.2)))
+                    .opacity(0.7)
             }
             .font(.subheadline)
             .fontWeight(isMultiImageMode ? .semibold : .regular)
@@ -714,6 +718,16 @@ struct MetaphysicsView: View {
                 .buttonStyle(PrimaryButtonStyle(isDisabled: selectedImage == nil || isCalculating))
                 .disabled(selectedImage == nil || isCalculating)
                 .padding(.horizontal)
+                
+                // 消耗提示（不明显）
+                if !isCalculating {
+                    Text("消耗 8 签")
+                        .font(.system(size: 10))
+                        .fontWeight(.light)
+                        .foregroundColor(.secondary)
+                        .opacity(0.5)
+                        .padding(.top, 4)
+                }
                 
                 // 加载提示
                 if isCalculating {

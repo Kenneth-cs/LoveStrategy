@@ -89,6 +89,16 @@ struct ReplyAssistantView: View {
                     .disabled(inputMessage.isEmpty || service.isAnalyzing)
                     .padding(.horizontal)
                     
+                    // 消耗提示（不明显）
+                    if !service.isAnalyzing {
+                        Text("消耗 3 签")
+                            .font(.system(size: 10))
+                            .fontWeight(.light)
+                            .foregroundColor(.secondary)
+                            .opacity(0.5)
+                            .padding(.top, 4)
+                    }
+                    
                     // 加载提示
                     if service.isAnalyzing {
                         Text("预计需要 10-15 秒")

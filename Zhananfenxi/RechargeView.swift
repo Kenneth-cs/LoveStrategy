@@ -234,7 +234,7 @@ enum RechargeTier: String, CaseIterable, Identifiable {
     
     var description: String {
         switch self {
-        case .starter: return "只要一瓶可乐钱"
+        case .starter: return "只要一杯奶茶钱"
         case .value: return "最划算的选择"
         case .premium: return "超值大礼包"
         }

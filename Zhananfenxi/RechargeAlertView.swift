@@ -131,7 +131,7 @@ struct RechargeAlertView: View {
                 .padding(.top, 10)
                 
                 // 底部提示
-                Text("💡 仅需 ¥5.8 即可获得60签，相当于一杯咖啡钱")
+                Text("💡 仅需 ¥5.8 即可获得60签，相当于一杯奶茶钱")
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .padding(.top, 10)
