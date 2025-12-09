@@ -314,9 +314,14 @@ struct HomeAnalysisView: View {
                     Text(isMultiImageMode ? "点击上传2-5张连续截图" : "点击上传微信截图")
                         .foregroundColor(.gray)
                     if isMultiImageMode {
-                        Text("可结合上下文深度分析")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                        VStack(spacing: 4) {
+                            Text("按选择顺序排列（1→2→3）")
+                                .font(.caption)
+                                .foregroundColor(AppTheme.accentPink)
+                            Text("可结合上下文深度分析")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
                     }
                 }
             }
@@ -416,7 +421,7 @@ struct HomeAnalysisView: View {
                 .fontWeight(.semibold)
             if isMultiImageMode && identifiableImages.count >= 2 {
                 Text("・")
-                Text("可深度分析上下文")
+                Text("按选择顺序分析")
                     .foregroundColor(.secondary)
             }
             Spacer()

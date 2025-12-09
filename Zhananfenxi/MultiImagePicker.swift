@@ -50,21 +50,25 @@ struct MultiImagePicker: UIViewControllerRepresentable {
                 return
             }
             
-            var images: [UIImage] = []
+            // 使用索引保持用户选择的顺序
+            var images: [UIImage?] = Array(repeating: nil, count: results.count)
             let group = DispatchGroup()
             
-            for result in results {
+            for (index, result) in results.enumerated() {
                 group.enter()
                 result.itemProvider.loadObject(ofClass: UIImage.self) { image, error in
                     if let image = image as? UIImage {
-                        images.append(image)
+                        images[index] = image
                     }
                     group.leave()
                 }
             }
             
             group.notify(queue: .main) {
-                self.parent.selectedImages = images
+                // 过滤掉加载失败的图片，保持顺序
+                let validImages = images.compactMap { $0 }
+                self.parent.selectedImages = validImages
+                print("📸 已加载 \(validImages.count) 张图片（按选择顺序）")
             }
         }
     }
