@@ -134,9 +134,14 @@ class UsageLimitManager {
     /// 获取新手福利提示
     static func getNewUserWelcomeMessage() -> String {
         return """
-        恭喜你！作为新用户，你额外获得了 \(newUserBonus) 次免费分析机会！
+        恭喜你！作为新用户，已为你准备了 66 签桃花签 🌸
         
-        今日可用次数：\(getCurrentLimit()) 次
+        • 高情商回复助手：3签/次
+        • 鉴渣雷达（单图）：8签/次
+        • 截图起卦：8签/次
+        • 多图深度分析：18签/次
+        
+        赶快去体验吧 💕
         """
     }
 }

@@ -28,8 +28,9 @@ class DeveloperSettings: ObservableObject {
     }
     
     private init() {
-        // 默认使用模拟购买（安全）
-        self.useSimulatedPurchase = UserDefaults.standard.object(forKey: "dev_useSimulatedPurchase") as? Bool ?? true
+        // 🚀 正式版：默认使用真实购买（用户会真正付费）
+        // 开发者可通过"我的"-点击版本号5次-开启模拟购买来测试
+        self.useSimulatedPurchase = UserDefaults.standard.object(forKey: "dev_useSimulatedPurchase") as? Bool ?? false
         self.showDeveloperMenu = UserDefaults.standard.bool(forKey: "dev_showDeveloperMenu")
     }
     

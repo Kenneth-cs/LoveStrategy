@@ -884,8 +884,9 @@ struct ProfileView: View {
     @State private var showUserGuide = false
     @State private var showRechargeView = false
     @State private var showDeveloperSettings = false
+    @State private var showFeedbackSheet = false
+    @State private var showQRCodeSheet = false
     @State private var versionTapCount = 0
-    @State private var dailyUsageCount = UserDefaults.standard.integer(forKey: "dailyUsageCount")
     
     var body: some View {
         NavigationStack {
@@ -989,6 +990,22 @@ struct ProfileView: View {
                 }
                 
                 Section("关于") {
+                    // 建议反馈（暂时隐藏）
+                    // Button {
+                    //     showFeedbackSheet = true
+                    // } label: {
+                    //     Label("建议反馈", systemImage: "envelope.fill")
+                    //         .foregroundColor(.primary)
+                    // }
+                    
+                    // 加入组织
+                    Button {
+                        showQRCodeSheet = true
+                    } label: {
+                        Label("加入组织", systemImage: "person.2.fill")
+                            .foregroundColor(.primary)
+                    }
+                    
                     Button {
                         versionTapCount += 1
                         if versionTapCount >= 5 {
@@ -1034,8 +1051,11 @@ struct ProfileView: View {
             .sheet(isPresented: $showDeveloperSettings) {
                 DeveloperSettingsView(coinManager: coinManager)
             }
-            .onAppear {
-                dailyUsageCount = UserDefaults.standard.integer(forKey: "dailyUsageCount")
+            .sheet(isPresented: $showFeedbackSheet) {
+                FeedbackView()
+            }
+            .sheet(isPresented: $showQRCodeSheet) {
+                QRCodeView()
             }
         }
     }
