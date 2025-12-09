@@ -90,7 +90,7 @@ struct RechargeView: View {
                         UsageInfoRow(icon: "message.fill", text: "高情商回复助手", cost: "3签/次")
                         UsageInfoRow(icon: "waveform.path.ecg", text: "鉴渣雷达（单图）", cost: "8签/次")
                         UsageInfoRow(icon: "star.circle.fill", text: "截图起卦", cost: "8签/次")
-                        UsageInfoRow(icon: "photo.stack.fill", text: "多图深度分析", cost: "18签/次", badge: "即将上线")
+                        UsageInfoRow(icon: "photo.stack.fill", text: "多图深度分析", cost: "18签/次", badge: "NEW")
                     }
                     .padding()
                     .background(
@@ -394,6 +394,14 @@ struct UsageInfoRow: View {
     let cost: String
     var badge: String? = nil
     
+    var badgeColor: Color {
+        if badge == "NEW" {
+            return .green
+        } else {
+            return .orange
+        }
+    }
+    
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
@@ -407,12 +415,13 @@ struct UsageInfoRow: View {
             if let badge = badge {
                 Text(badge)
                     .font(.caption2)
-                    .foregroundColor(.orange)
+                    .fontWeight(.semibold)
+                    .foregroundColor(badgeColor)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
                     .background(
                         Capsule()
-                            .fill(Color.orange.opacity(0.2))
+                            .fill(badgeColor.opacity(0.2))
                     )
             }
             

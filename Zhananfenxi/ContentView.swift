@@ -56,12 +56,19 @@ struct MainTabView: View {
 
 // MARK: - Home Analysis View
 
+// 带唯一ID的图片模型，用于稳定的列表标识
+struct IdentifiableImage: Identifiable {
+    let id = UUID()
+    let image: UIImage
+}
+
 struct HomeAnalysisView: View {
     @Environment(\.modelContext) private var modelContext
     @StateObject var service = VolcengineService()
     @StateObject private var coinManager = PeachBlossomManager.shared
     @State private var showImagePicker = false
-    @State private var selectedImage: UIImage?
+    @State private var selectedImages: [UIImage] = []
+    @State private var identifiableImages: [IdentifiableImage] = []
     @State private var showResult = false
     @State private var analysisResult: AnalysisResult?
     @State private var showError = false
@@ -70,82 +77,15 @@ struct HomeAnalysisView: View {
     @State private var limitMessage = ""
     @State private var showNewUserWelcome = false
     @State private var showRechargeAlert = false
+    @State private var isMultiImageMode = false  // 是否为多图模式
     
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
-                    // Header
-                    VStack(alignment: .leading, spacing: 10) {
-                        HStack {
-                            VStack(alignment: .leading) {
-                                Text("上传聊天记录")
-                                    .font(.title2).bold()
-                                Text("军师帮你识别潜台词，以此'鉴'人")
-                                    .font(.subheadline)
-                                    .foregroundColor(.gray)
-                            }
-                            
-                            Spacer()
-                            
-                            // 桃花签余额显示
-                            CoinBalanceView(
-                                coinManager: coinManager,
-                                style: .normal
-                            )
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding()
-                    
-                    // Image Upload Area
-                    ZStack(alignment: .topTrailing) {
-                        Button(action: { showImagePicker = true }) {
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 16)
-                                    .fill(Color.gray.opacity(0.1))
-                                    .frame(height: 200)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 16)
-                                            .stroke(style: StrokeStyle(lineWidth: 2, dash: [5]))
-                                            .foregroundColor(.gray.opacity(0.5))
-                                    )
-                                
-                                if let img = selectedImage {
-                                    Image(uiImage: img)
-                                        .resizable()
-                                        .scaledToFit()
-                                        .frame(height: 180)
-                                        .cornerRadius(12)
-                                } else {
-                                    VStack {
-                                        Image(systemName: "plus.viewfinder")
-                                            .font(.system(size: 40))
-                                            .foregroundColor(.gray)
-                                        Text("点击上传微信截图")
-                                            .foregroundColor(.gray)
-                                    }
-                                }
-                            }
-                        }
-                        
-                        // 删除按钮
-                        if selectedImage != nil {
-                            Button {
-                                withAnimation {
-                                    selectedImage = nil
-                                    analysisResult = nil
-                                }
-                            } label: {
-                                Image(systemName: "xmark.circle.fill")
-                                    .font(.system(size: 28))
-                                    .foregroundStyle(.white, AppTheme.accentPink)
-                                    .shadow(radius: 2)
-                            }
-                            .padding(8)
-                        }
-                    }
-                    .padding(.horizontal)
+                    headerView
+                    modeSwitcher
+                    imageUploadArea
                     
                     // Analyze Button
                     Button(action: analyzeImage) {
@@ -156,12 +96,12 @@ struct HomeAnalysisView: View {
                                 Text("军师正在分析中...")
                             } else {
                                 Image(systemName: "sparkles")
-                                Text("开始深度分析")
+                                Text(identifiableImages.count >= 2 ? "开始多图深度分析" : "开始深度分析")
                             }
                         }
                     }
-                    .buttonStyle(PrimaryButtonStyle(isDisabled: selectedImage == nil || service.isAnalyzing))
-                    .disabled(selectedImage == nil || service.isAnalyzing)
+                    .buttonStyle(PrimaryButtonStyle(isDisabled: identifiableImages.isEmpty || service.isAnalyzing))
+                    .disabled(identifiableImages.isEmpty || service.isAnalyzing)
                     .padding(.horizontal)
                     
                     // 加载提示
@@ -206,7 +146,15 @@ struct HomeAnalysisView: View {
             .toolbarBackground(AppTheme.softPink, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
             .sheet(isPresented: $showImagePicker) {
-                ImagePicker(image: $selectedImage)
+                MultiImagePicker(
+                    selectedImages: $selectedImages,
+                    maxSelection: 5,
+                    isMultiMode: isMultiImageMode
+                )
+            }
+            .onChange(of: selectedImages) { oldValue, newValue in
+                // 当 selectedImages 变化时，同步到 identifiableImages
+                syncArrayToIdentifiableImages()
             }
             .alert("分析失败", isPresented: $showError) {
                 Button("确定", role: .cancel) {}
@@ -226,8 +174,8 @@ struct HomeAnalysisView: View {
             .sheet(isPresented: $showRechargeAlert) {
                 RechargeAlertView(
                     coinManager: coinManager,
-                    requiredAmount: 8,
-                    featureName: "鉴渣雷达"
+                    requiredAmount: identifiableImages.count >= 2 ? 18 : 8,
+                    featureName: identifiableImages.count >= 2 ? "多图深度分析" : "鉴渣雷达"
                 )
                 .presentationDetents([.medium])
                 .presentationDragIndicator(.visible)
@@ -242,28 +190,279 @@ struct HomeAnalysisView: View {
         }
     }
     
+    // MARK: - View Components
+    
+    private var headerView: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                VStack(alignment: .leading) {
+                    Text("上传聊天记录")
+                        .font(.title2).bold()
+                    Text("军师帮你识别潜台词，以此'鉴'人")
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
+                }
+                
+                Spacer()
+                
+                CoinBalanceView(
+                    coinManager: coinManager,
+                    style: .normal
+                )
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+    }
+    
+    private var modeSwitcher: some View {
+        HStack(spacing: 15) {
+            singleImageModeButton
+            multiImageModeButton
+        }
+        .padding(.horizontal)
+    }
+    
+    private var singleImageModeButton: some View {
+        Button {
+            withAnimation {
+                isMultiImageMode = false
+                if identifiableImages.count > 1 {
+                    identifiableImages = Array(identifiableImages.prefix(1))
+                    syncImagesToArray()
+                }
+            }
+        } label: {
+            HStack {
+                Image(systemName: "photo")
+                Text("单图分析")
+                Text("8签")
+                    .font(.caption2)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Capsule().fill(Color.white.opacity(0.3)))
+            }
+            .font(.subheadline)
+            .fontWeight(isMultiImageMode ? .regular : .semibold)
+            .foregroundColor(isMultiImageMode ? .secondary : .white)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .background(
+                Capsule()
+                    .fill(isMultiImageMode ? Color.gray.opacity(0.2) : AppTheme.accentPink)
+            )
+        }
+    }
+    
+    private var multiImageModeButton: some View {
+        Button {
+            withAnimation {
+                isMultiImageMode = true
+            }
+        } label: {
+            HStack {
+                Image(systemName: "photo.stack")
+                Text("多图分析")
+                Text("18签")
+                    .font(.caption2)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Capsule().fill(Color.white.opacity(0.3)))
+            }
+            .font(.subheadline)
+            .fontWeight(isMultiImageMode ? .semibold : .regular)
+            .foregroundColor(isMultiImageMode ? .white : .secondary)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .background(
+                Capsule()
+                    .fill(isMultiImageMode ? AppTheme.accentPink : Color.gray.opacity(0.2))
+            )
+        }
+    }
+    
+    private var imageUploadArea: some View {
+        Group {
+            if identifiableImages.isEmpty {
+                emptyImagePlaceholder
+            } else {
+                imagePreviewGrid
+            }
+        }
+    }
+    
+    private var emptyImagePlaceholder: some View {
+        Button(action: { showImagePicker = true }) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color.gray.opacity(0.1))
+                    .frame(height: 200)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(style: StrokeStyle(lineWidth: 2, dash: [5]))
+                            .foregroundColor(.gray.opacity(0.5))
+                    )
+                
+                VStack(spacing: 10) {
+                    Image(systemName: isMultiImageMode ? "photo.stack" : "plus.viewfinder")
+                        .font(.system(size: 40))
+                        .foregroundColor(.gray)
+                    Text(isMultiImageMode ? "点击上传2-5张连续截图" : "点击上传微信截图")
+                        .foregroundColor(.gray)
+                    if isMultiImageMode {
+                        Text("可结合上下文深度分析")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+        }
+        .padding(.horizontal)
+    }
+    
+    private var imagePreviewGrid: some View {
+        VStack(spacing: 15) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(Array(identifiableImages.enumerated()), id: \.element.id) { index, identifiableImage in
+                        imagePreviewCell(identifiableImage: identifiableImage, index: index)
+                    }
+                    
+                    if isMultiImageMode && identifiableImages.count < 5 {
+                        addMoreImagesButton
+                    }
+                }
+                .padding(.horizontal)
+            }
+            
+            imageCountInfo
+        }
+    }
+    
+    private func imagePreviewCell(identifiableImage: IdentifiableImage, index: Int) -> some View {
+        ZStack(alignment: .topTrailing) {
+            Image(uiImage: identifiableImage.image)
+                .resizable()
+                .scaledToFill()
+                .frame(width: 120, height: 160)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+            
+            Button {
+                withAnimation {
+                    if let indexToRemove = identifiableImages.firstIndex(where: { $0.id == identifiableImage.id }) {
+                        identifiableImages.remove(at: indexToRemove)
+                        syncImagesToArray()
+                    }
+                }
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 24))
+                    .foregroundStyle(.white, AppTheme.accentPink)
+                    .shadow(radius: 2)
+            }
+            .padding(6)
+            
+            VStack {
+                HStack {
+                    Text("\(index + 1)")
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                        .padding(6)
+                        .background(Circle().fill(AppTheme.accentPink))
+                    Spacer()
+                }
+                Spacer()
+            }
+            .padding(6)
+        }
+    }
+    
+    private var addMoreImagesButton: some View {
+        Button(action: { showImagePicker = true }) {
+            VStack(spacing: 8) {
+                Image(systemName: "plus.circle.fill")
+                    .font(.system(size: 30))
+                    .foregroundColor(AppTheme.accentPink)
+                Text("添加图片")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Text("\(identifiableImages.count)/5")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
+            .frame(width: 120, height: 160)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.gray.opacity(0.1))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(style: StrokeStyle(lineWidth: 2, dash: [5]))
+                            .foregroundColor(.gray.opacity(0.5))
+                    )
+            )
+        }
+    }
+    
+    private var imageCountInfo: some View {
+        HStack {
+            Image(systemName: "info.circle")
+                .foregroundColor(AppTheme.accentPink)
+            Text("\(identifiableImages.count) 张图片")
+                .fontWeight(.semibold)
+            if isMultiImageMode && identifiableImages.count >= 2 {
+                Text("・")
+                Text("可深度分析上下文")
+                    .foregroundColor(.secondary)
+            }
+            Spacer()
+        }
+        .font(.caption)
+        .padding(.horizontal)
+    }
+    
+    // MARK: - Helper Functions
+    
+    /// 同步 identifiableImages 到 selectedImages
+    private func syncImagesToArray() {
+        selectedImages = identifiableImages.map { $0.image }
+    }
+    
+    /// 从 selectedImages 创建 identifiableImages
+    private func syncArrayToIdentifiableImages() {
+        identifiableImages = selectedImages.map { IdentifiableImage(image: $0) }
+    }
+    
+    // MARK: - Actions
+    
     private func analyzeImage() {
-        guard let image = selectedImage else { return }
+        guard !selectedImages.isEmpty else { return }
         
-        // 检查桃花签余额（需要8签）
-        guard coinManager.checkBalance(required: 8) else {
+        // 根据图片数量计算需要的桃花签（1张=8签，2-5张=18签）
+        let requiredCoins = selectedImages.count >= 2 ? 18 : 8
+        
+        // 检查桃花签余额
+        guard coinManager.checkBalance(required: requiredCoins) else {
             showRechargeAlert = true
             return
         }
         
         Task {
             do {
-                let result = try await service.analyzeImages([image])
+                let result = try await service.analyzeImages(selectedImages)
                 await MainActor.run {
                     self.analysisResult = result
                     
                     // 分析成功后才扣费
-                    try? coinManager.deductCoins(8, reason: "鉴渣雷达分析")
+                    let reason = selectedImages.count >= 2 ? "鉴渣雷达多图分析" : "鉴渣雷达分析"
+                    try? coinManager.deductCoins(requiredCoins, reason: reason)
                     
-                    // 保存到历史记录
-                    let imageData = image.jpegData(compressionQuality: 0.7)
-                    let historyManager = HistoryManager(modelContext: modelContext)
-                    historyManager.saveHistory(result, imageData: imageData)
+                    // 保存到历史记录（使用第一张图作为封面）
+                    if let firstImage = selectedImages.first {
+                        let imageData = firstImage.jpegData(compressionQuality: 0.7)
+                        let historyManager = HistoryManager(modelContext: modelContext)
+                        historyManager.saveHistory(result, imageData: imageData)
+                    }
                 }
             } catch {
                 await MainActor.run {
