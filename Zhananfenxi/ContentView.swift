@@ -579,7 +579,7 @@ struct ResultCardView: View {
                 .background(Color.yellow.opacity(0.1))
                 .cornerRadius(8)
         }
-        .cardStyle(backgroundColor: Color(red: 0.949, green: 0.945, blue: 0.965))
+        .cardStyle(backgroundColor: AppTheme.softPink)
     }
     
     func scoreColor(score: Int) -> Color {
@@ -847,7 +847,7 @@ struct OracleResultView: View {
                         Text(result.advice)
                             .font(.title3)
                             .fontWeight(.semibold)
-                            .foregroundColor(Color(red: 0.8, green: 0.2, blue: 0.4))
+                            .foregroundColor(AppTheme.darkPink)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding()

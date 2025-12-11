@@ -64,7 +64,7 @@ class PeachBlossomManager: ObservableObject {
     // MARK: - Constants
     
     /// 初始赠送金额
-    private let initialGiftAmount = 66
+    private let initialGiftAmount = 36
     
     /// iCloud 存储键名
     private let iCloudBalanceKey = "peachBlossomBalance"

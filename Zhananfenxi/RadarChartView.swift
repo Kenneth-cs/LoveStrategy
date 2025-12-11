@@ -30,8 +30,8 @@ struct RadarChartView: View {
                     .fill(
                         LinearGradient(
                             colors: [
-                                Color(red: 0.8, green: 0.2, blue: 0.4).opacity(0.3),
-                                Color(red: 0.6, green: 0.1, blue: 0.6).opacity(0.3)
+                                AppTheme.darkPink.opacity(0.3),
+                                AppTheme.accentPink.opacity(0.2)
                             ],
                             startPoint: .top,
                             endPoint: .bottom
@@ -43,8 +43,8 @@ struct RadarChartView: View {
                     .stroke(
                         LinearGradient(
                             colors: [
-                                Color(red: 0.8, green: 0.2, blue: 0.4),
-                                Color(red: 0.6, green: 0.1, blue: 0.6)
+                                AppTheme.darkPink,
+                                AppTheme.accentPink
                             ],
                             startPoint: .top,
                             endPoint: .bottom
@@ -59,7 +59,7 @@ struct RadarChartView: View {
                     let point = pointOnCircle(angle: angle, radius: radius)
                     
                     Circle()
-                        .fill(Color(red: 0.8, green: 0.2, blue: 0.4))
+                        .fill(AppTheme.darkPink)
                         .frame(width: 8, height: 8)
                         .position(x: point.x + 150, y: point.y + 150)
                 }

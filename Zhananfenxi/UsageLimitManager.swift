@@ -134,7 +134,7 @@ class UsageLimitManager {
     /// 获取新手福利提示
     static func getNewUserWelcomeMessage() -> String {
         return """
-        恭喜你！作为新用户，已为你准备了 66 签桃花签 🌸
+        恭喜你！作为新用户，已为你准备了 36 签桃花签 🌸
         
         • 高情商回复助手：3签/次
         • 鉴渣雷达（单图）：8签/次
