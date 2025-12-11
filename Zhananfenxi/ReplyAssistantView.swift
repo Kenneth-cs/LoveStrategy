@@ -42,7 +42,7 @@ struct ReplyAssistantView: View {
                         }
                         
                         // 用户痛点问题
-                        Text("我该怎么回才能拿捏他")
+                        Text("“我该怎么回才能拿捏他”")
                             .font(.subheadline)
                             .fontWeight(.medium)
                             .foregroundStyle(

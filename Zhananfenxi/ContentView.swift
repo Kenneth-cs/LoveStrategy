@@ -200,7 +200,7 @@ struct HomeAnalysisView: View {
                         .font(.title2).bold()
                     
                     // 用户痛点问题
-                    Text("他到底喜不喜欢我 / 他是不是在PUA我")
+                    Text("“他到底喜不喜欢我 / 他是不是在PUA我”")
                         .font(.subheadline)
                         .fontWeight(.medium)
                         .foregroundStyle(
@@ -651,7 +651,7 @@ struct MetaphysicsView: View {
                     }
                     
                     // 用户痛点问题
-                    Text("我们到底合不合适")
+                    Text("“我们到底合不合适”")
                         .font(.subheadline)
                         .fontWeight(.medium)
                         .foregroundStyle(
