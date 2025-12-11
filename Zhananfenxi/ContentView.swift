@@ -130,7 +130,7 @@ struct HomeAnalysisView: View {
                             .font(.system(size: 20))
                             .foregroundStyle(AppTheme.iconGradient)
                         
-                        Text("Love Strategy")
+                        Text("恋爱军师")
                             .font(.custom("Didot", size: 20))
                             .bold()
                             .foregroundStyle(
@@ -193,14 +193,28 @@ struct HomeAnalysisView: View {
     // MARK: - View Components
     
     private var headerView: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             HStack {
-                VStack(alignment: .leading) {
+                VStack(alignment: .leading, spacing: 8) {
                     Text("上传聊天记录")
                         .font(.title2).bold()
-                    Text("军师帮你识别潜台词，以此'鉴'人")
+                    
+                    // 用户痛点问题
+                    Text("他到底喜不喜欢我 / 他是不是在PUA我")
                         .font(.subheadline)
-                        .foregroundColor(.gray)
+                        .fontWeight(.medium)
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [AppTheme.accentPink, AppTheme.darkPink],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .italic()
+                    
+                    Text("军师帮你识别潜台词，以此'鉴'人")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
                 
                 Spacer()
@@ -617,15 +631,29 @@ struct MetaphysicsView: View {
     
     var body: some View {
         NavigationStack {
-            VStack(spacing: 30) {
-                HStack(spacing: 8) {
-                    Image(systemName: "sparkles")
-                        .font(.title2)
-                        .foregroundStyle(AppTheme.iconGradient)
+            VStack(spacing: 20) {
+                VStack(spacing: 8) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "sparkles")
+                            .font(.title2)
+                            .foregroundStyle(AppTheme.iconGradient)
+                        
+                        Text("截图起卦")
+                            .font(.title2)
+                            .bold()
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [AppTheme.accentPink, AppTheme.darkPink],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                    }
                     
-                    Text("截图起卦")
-                        .font(.title2)
-                        .bold()
+                    // 用户痛点问题
+                    Text("我们到底合不合适")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
                         .foregroundStyle(
                             LinearGradient(
                                 colors: [AppTheme.accentPink, AppTheme.darkPink],
@@ -633,15 +661,17 @@ struct MetaphysicsView: View {
                                 endPoint: .trailing
                             )
                         )
+                        .italic()
+                        .multilineTextAlignment(.center)
+                    
+                    Text("上传聊天记录，军师将通过卦象隐喻进行心理投射分析")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
                 }
                 .padding(.top)
-                
-                Text("上传聊天记录，军师将通过卦象隐喻进行心理投射分析")
-                    .font(.caption)
-                    .foregroundColor(.gray)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal)
-                    .padding(.bottom)
+                .padding(.horizontal)
+                .padding(.bottom, 10)
                 
                 // 图片预览或占位符
                 ZStack(alignment: .topTrailing) {

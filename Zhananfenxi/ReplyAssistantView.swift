@@ -23,7 +23,7 @@ struct ReplyAssistantView: View {
             ScrollView {
                 VStack(spacing: 25) {
                     // Header
-                    VStack(spacing: 10) {
+                    VStack(spacing: 12) {
                         HStack(spacing: 8) {
                             Image(systemName: "message.badge.filled.fill")
                                 .font(.title2)
@@ -40,6 +40,20 @@ struct ReplyAssistantView: View {
                                     )
                                 )
                         }
+                        
+                        // 用户痛点问题
+                        Text("我该怎么回才能拿捏他")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [AppTheme.accentPink, AppTheme.darkPink],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .italic()
+                            .multilineTextAlignment(.center)
                         
                         Text("输入对方的话，军师帮你生成三种风格的回复")
                             .font(.caption)
